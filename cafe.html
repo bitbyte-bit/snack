@@ -1,0 +1,2867 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Your daily dose of delicious snacks and drinks with modern ordering experience">
+    <meta name="keywords" content="snacks, drinks, food delivery, cafe, ordering">
+    <meta name="author" content="Maricafe">
+    <meta name="theme-color" content="#1e293b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Maricafe">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="msapplication-TileColor" content="#1e293b">
+    <meta name="msapplication-config" content="/browserconfig.xml">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🫖</text></svg>">
+    <link rel="apple-touch-icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192' fill='%23f1f5f9'><circle cx='96' cy='96' r='88' fill='%231e293b'/><text x='96' y='120' font-family='Arial, sans-serif' font-size='120' text-anchor='middle' fill='%23f1f5f9'>🫖</text></svg>">
+    <link rel="manifest" href="/manifest.json">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="cart.js" defer></script>
+    <style>
+        :root {
+            --primary-color: #f97316;
+            --secondary-color: #1e293b;
+            --accent-color: #fb923c;
+            --text-color: #1f2937;
+            --light-bg: #f9fafb;
+            --card-bg: #ffffff;
+            --shadow-light: 0 2px 8px rgba(0, 0, 0, .1);
+            --shadow-hover: 0 4px 16px rgba(0, 0, 0, .15);
+            --transition-duration: .3s;
+            --notification-height: 35px;
+            --bottom-nav-height: 65px;
+            --border-radius: 12px;
+            --border-radius-large: 16px;
+            --success-color: #10b981;
+            --error-color: #ef4444;
+            --warning-color: #f59e0b;
+            --info-color: #3b82f6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--light-bg);
+            padding-top: var(--notification-height);
+            padding-bottom: var(--bottom-nav-height);
+        }
+
+        #top-notification {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: var(--notification-height);
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-color));
+            color: white;
+            text-align: center;
+            line-height: var(--notification-height);
+            font-size: .9em;
+            font-weight: 600;
+            z-index: 1100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(37, 211, 102, .3);
+        }
+
+        #notification-close {
+            position: absolute;
+            right: 15px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 1.2em;
+            line-height: var(--notification-height);
+            padding: 0 5px;
+            transition: color var(--transition-duration);
+        }
+
+        #notification-close:hover {
+            color: #dcf8c6;
+        }
+
+        .notification-hidden body {
+            padding-top: 0;
+        }
+
+        header {
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            padding: 16px 5%;
+            box-shadow: var(--shadow-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .logo {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #user-greeting {
+            font-size: 1em;
+            font-weight: 500;
+            color: #666;
+            transition: color .3s;
+        }
+
+        .nav-links a {
+            color: var(--text-color);
+            text-decoration: none;
+            margin-left: 20px;
+            font-weight: 500;
+            transition: color var(--transition-duration), transform var(--transition-duration);
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: var(--border-radius);
+            background: #f8f9fa;
+        }
+
+        .nav-links a i {
+            font-size: 1.5em;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary-color);
+            transform: scale(1.02);
+            background: #e3f2fd;
+        }
+
+        .cart-icon {
+            position: relative;
+            cursor: pointer;
+            font-size: 1.5em;
+            padding: 8px;
+            border-radius: 50%;
+            background: #f8f9fa;
+            transition: transform var(--transition-duration), background var(--transition-duration);
+            display: none;
+        }
+
+        .cart-icon:hover {
+            background: #e3f2fd;
+            transform: scale(1.05);
+        }
+
+        #cart-count {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background-color: #ff4444;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: .7em;
+            font-weight: 700;
+            min-width: 18px;
+            text-align: center;
+            border: 2px solid white;
+        }
+
+        main {
+            padding: 0 5%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        #bottom-nav-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: var(--bottom-nav-height);
+            background-color: var(--card-bg);
+            box-shadow: 0 -2px 16px rgba(0, 0, 0, .1);
+            z-index: 1050;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .bottom-nav-link {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: #666;
+            font-size: .8em;
+            font-weight: 600;
+            padding: 8px 0;
+            transition: color var(--transition-duration), transform var(--transition-duration);
+            border-radius: 8px;
+        }
+
+        .bottom-nav-link i {
+            font-size: 1.8em;
+            margin-bottom: 2px;
+        }
+
+        .bottom-nav-link:hover,
+        .bottom-nav-link.active {
+            color: var(--primary-color);
+            transform: translateY(-2px);
+            background: #f0f2f5;
+        }
+
+        .bottom-cart-wrapper {
+            position: relative;
+            padding: 0 10px;
+        }
+
+        #inbox-count {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background-color: #ff4444;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: .7em;
+            font-weight: 700;
+            min-width: 18px;
+            text-align: center;
+            border: 2px solid white;
+        }
+
+        #inbox-count.hidden {
+            display: none;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, var(--primary-color), #20b954);
+            color: white;
+            padding: 60px 20px;
+            border-radius: 0;
+            text-align: center;
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="80" cy="40" r="1.5" fill="rgba(255,255,255,0.1)"/><circle cx="60" cy="80" r="1" fill="rgba(255,255,255,0.1)"/></svg>');
+        }
+
+        .hero h1 {
+            font-size: 2.8em;
+            margin-bottom: 16px;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, .2);
+        }
+
+        .hero p {
+            font-size: 1.3em;
+            margin-bottom: 24px;
+            font-weight: 400;
+            opacity: .9;
+        }
+
+        .hero-actions {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 24px;
+            flex-wrap: wrap;
+        }
+
+        .hero-action-link {
+            padding: 14px 28px;
+            text-decoration: none;
+            border-radius: var(--border-radius-large);
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all var(--transition-duration);
+            border: 2px solid rgba(255, 255, 255, .2);
+            backdrop-filter: blur(10px);
+        }
+
+        .order-call-button {
+            background: rgba(255, 255, 255, .2);
+            color: white;
+        }
+
+        .order-call-button:hover {
+            background: rgba(255, 255, 255, .3);
+            transform: translateY(-2px);
+        }
+
+        .chat-whatsapp-button {
+            background: white;
+            color: var(--primary-color);
+        }
+
+        .chat-whatsapp-button:hover {
+            background: #f8f9fa;
+            transform: translateY(-2px);
+        }
+
+        .shop-button {
+            background: linear-gradient(135deg, var(--primary-color), #20b954);
+            color: white;
+            padding: 14px 28px;
+            text-decoration: none;
+            border-radius: var(--border-radius-large);
+            font-weight: 600;
+            display: inline-block;
+            transition: all var(--transition-duration);
+            border: none;
+            cursor: pointer;
+        }
+
+        .shop-button:hover {
+            background: linear-gradient(135deg, #20b954, #25d366);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 211, 102, .3);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 24px;
+            font-size: 2.2em;
+            color: var(--text-color);
+            font-weight: 700;
+        }
+
+        #category-sections {
+            padding: 0;
+            margin-left: 0;
+            width: 100%;
+        }
+
+        .category-section {
+            margin-bottom: 32px;
+        }
+
+        .category-title {
+            font-size: 1.6em;
+            color: var(--text-color);
+            margin-bottom: 16px;
+            border-bottom: 3px solid var(--primary-color);
+            padding-bottom: 8px;
+            display: inline-block;
+            margin-left: 20px;
+            font-weight: 600;
+        }
+
+        .product-scroll-container {
+            display: flex;
+            overflow-x: scroll;
+            padding: 0 20px 20px 20px;
+            gap: 16px;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .product-scroll-container::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .product-scroll-container::-webkit-scrollbar-thumb {
+            background: linear-gradient(90deg, var(--primary-color), #20b954);
+            border-radius: 3px;
+        }
+
+        .product-card {
+            min-width: 200px;
+            max-width: 200px;
+            scroll-snap-align: start;
+            flex-shrink: 0;
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius-large);
+            box-shadow: var(--shadow-light);
+            overflow: hidden;
+            text-align: center;
+            padding-bottom: 16px;
+            transition: all var(--transition-duration);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border: 1px solid #e5e7eb;
+        }
+
+        .product-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-hover);
+            border-color: var(--primary-color);
+        }
+
+        .product-card img {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            display: block;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .product-info {
+            padding: 16px 16px 8px 16px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .product-info h3 {
+            font-size: 1.1em;
+            margin-bottom: 8px;
+            color: var(--text-color);
+            font-weight: 600;
+            line-height: 1.3;
+        }
+
+        .product-info p {
+            display: none;
+        }
+
+        .price {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 12px;
+        }
+
+        .product-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .action-btn-group {
+            display: flex;
+            gap: 6px;
+            flex: 1;
+        }
+
+        .add-to-cart {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 700;
+            transition: all var(--transition-duration);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 40px;
+            height: 40px;
+            box-shadow: 0 2px 6px rgba(59, 130, 246, .2);
+        }
+
+        .add-to-cart:hover {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, .3);
+        }
+
+        .add-to-cart:active {
+            transform: translateY(0);
+        }
+
+        .buy-now {
+            background: linear-gradient(135deg, var(--primary-color), #ea580c);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: all var(--transition-duration);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            flex: 1;
+            min-height: 40px;
+            box-shadow: 0 2px 6px rgba(249, 115, 22, .2);
+        }
+
+        .buy-now:hover {
+            background: linear-gradient(135deg, #ea580c, #dc2626);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(249, 115, 22, .3);
+        }
+
+        .buy-now:active {
+            transform: translateY(0);
+        }
+
+        .share-btn {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: all var(--transition-duration);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 40px;
+            height: 40px;
+            box-shadow: 0 2px 6px rgba(139, 92, 246, .2);
+        }
+
+        .share-btn:hover {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, .3);
+        }
+
+        .share-btn:active {
+            transform: translateY(0);
+        }
+
+        .buy-now i,
+        .add-to-cart i,
+        .share-btn i {
+            font-size: 1.1em;
+        }
+
+        .discount-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 700;
+            z-index: 10;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+        }
+
+        .original-price {
+            text-decoration: line-through;
+            color: #94a3b8;
+            font-size: 0.9em;
+            margin-right: 4px;
+        }
+
+        footer {
+            background: linear-gradient(135deg, var(--accent-color), #128c7e);
+            color: white;
+            padding: 32px 5% 80px 5%;
+            margin-top: 32px;
+            font-size: .9em;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            border-radius: var(--border-radius-large) var(--border-radius-large) 0 0;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            max-width: 1000px;
+            padding-bottom: 24px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, .1);
+        }
+
+        .contact-section,
+        .social-section {
+            width: 45%;
+            min-width: 280px;
+            max-width: 400px;
+        }
+
+        .contact-section h4 {
+            font-size: 1.5em;
+            color: #dcf8c6;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+
+        #contact-form {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        #contact-form input,
+        #contact-form textarea {
+            padding: 14px;
+            border: none;
+            border-radius: var(--border-radius);
+            background-color: rgba(255, 255, 255, .1);
+            color: white;
+            font-size: 1em;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, .2);
+        }
+
+        #contact-form input::placeholder,
+        #contact-form textarea::placeholder {
+            color: rgba(255, 255, 255, .7);
+        }
+
+        #contact-form input:focus,
+        #contact-form textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background-color: rgba(255, 255, 255, .15);
+        }
+
+        .profile-form-group label {
+            display: block;
+            text-align: left;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: white;
+        }
+
+        #profile-form input {
+            width: 100%;
+        }
+
+        #contact-form textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        #contact-form button {
+            background: linear-gradient(135deg, var(--primary-color), #20b954);
+            color: white;
+            padding: 14px;
+            font-weight: 600;
+            border-radius: var(--border-radius);
+            transition: all var(--transition-duration);
+            border: none;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+
+        #contact-form button:hover {
+            background: linear-gradient(135deg, #20b954, #25d366);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 211, 102, .3);
+        }
+
+        #contact-message {
+            margin-top: 12px;
+            font-weight: 600;
+            color: #dcf8c6;
+        }
+
+        .social-icons {
+            display: flex;
+            gap: 24px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+
+        .social-icons a {
+            color: white;
+            font-size: 1.8em;
+            transition: all var(--transition-duration);
+            padding: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .1);
+        }
+
+        .social-icons a:hover {
+            color: var(--primary-color);
+            transform: scale(1.1);
+            background: white;
+        }
+
+        .footer-copy {
+            padding-top: 16px;
+            color: rgba(255, 255, 255, .8);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, .5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background-color: var(--card-bg);
+            padding: 32px;
+            border-radius: var(--border-radius-large);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, .15);
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            transform: scale(.95);
+            opacity: 0;
+            transition: all .3s ease-in-out;
+            border: 1px solid #e5e7eb;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #666;
+            line-height: 1;
+            padding: 8px;
+            border-radius: 50%;
+            background: #f8f9fa;
+            transition: all var(--transition-duration);
+        }
+
+        .modal-close:hover {
+            color: var(--primary-color);
+            background: #e3f2fd;
+            transform: scale(1.1);
+        }
+
+        .message-box {
+            text-align: center;
+            padding: 16px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: 1px solid #10b981;
+            color: white;
+            border-radius: var(--border-radius);
+            margin-bottom: 16px;
+            font-weight: 500;
+        }
+
+        .message-box.error {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border: 1px solid #ef4444;
+            color: white;
+        }
+
+        #cart-modal .modal-content {
+            width: 100%;
+            max-width: 380px;
+            height: 100%;
+            position: fixed;
+            top: 0;
+            right: 0;
+            border-radius: 0;
+            padding: 24px;
+            transform: translateX(100%);
+            opacity: 1;
+            transition: transform .3s ease-out;
+            border-left: 1px solid #e5e7eb;
+        }
+
+        #cart-modal.active .modal-content {
+            transform: translateX(0);
+        }
+
+        #cart-modal.active {
+            display: block;
+            background-color: rgba(0, 0, 0, .4);
+            backdrop-filter: blur(4px);
+        }
+
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e5e7eb;
+            gap: 10px;
+        }
+
+        .cart-item-details {
+            flex-grow: 1;
+            min-width: 0;
+        }
+
+        .cart-item-details h4 {
+            font-size: 0.95em;
+            margin: 0;
+            color: var(--text-color);
+            font-weight: 600;
+        }
+
+        .cart-item-details p {
+            font-size: 0.85em;
+            color: #666;
+            margin: 3px 0 0 0;
+        }
+
+        .cart-item-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .quantity-control {
+            display: flex;
+            align-items: center;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #f9f9f9;
+        }
+
+        .quantity-control button {
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-weight: bold;
+            color: var(--primary-color);
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .quantity-control button:hover {
+            background: #f0f0f0;
+        }
+
+        .quantity-control input {
+            width: 35px;
+            border: none;
+            text-align: center;
+            font-weight: 600;
+            background: transparent;
+            font-size: 0.9em;
+        }
+
+        .cart-item-price {
+            font-weight: 700;
+            color: var(--primary-color);
+            font-size: 1em;
+            white-space: nowrap;
+            min-width: 70px;
+            text-align: right;
+        }
+
+        .cart-item-remove {
+            background: #fee;
+            color: #ef4444;
+            border: none;
+            border-radius: 4px;
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cart-item-remove:hover {
+            background: #fdd;
+            transform: scale(1.05);
+        }
+
+        #cart-items-list {
+            max-height: calc(100vh - 220px);
+            overflow-y: auto;
+        }
+        /* Discount and clear cart styles */
+        .discount-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            align-items: center;
+        }
+
+        #cart-discount-code {
+            flex: 1;
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            background: white;
+        }
+
+        #cart-apply-discount {
+            padding: 8px 12px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        #cart-clear-btn {
+            background: transparent;
+            color: #ef4444;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .cart-summary {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 2px solid var(--primary-color);
+            background: #f8f9fa;
+            border-radius: var(--border-radius);
+            padding: 20px;
+        }
+
+        .cart-summary div {
+            display: flex;
+            justify-content: space-between;
+            font-size: 1.3em;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--text-color);
+        }
+
+        .cart-checkout {
+            margin-top: 16px;
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary-color), #20b954);
+            color: white;
+            border-radius: var(--border-radius);
+            padding: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+
+        .cart-checkout:hover {
+            background: linear-gradient(135deg, #20b954, #25d366);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 211, 102, .3);
+        }
+
+        .payment-option {
+            border: 1px solid #e5e7eb;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all .2s;
+            background: white;
+        }
+
+        .payment-option:hover {
+            background: #f8f9fa;
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, .1);
+        }
+
+        .payment-option h4 {
+            margin-top: 0;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .payment-option p {
+            font-size: .9em;
+            color: #666;
+            margin: 4px 0;
+        }
+
+        .payment-option-details {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .payment-option-details i {
+            font-size: 2.5em;
+            color: var(--primary-color);
+        }
+
+        .payment-option.selected {
+            border-color: var(--primary-color);
+            border-width: 2px;
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            box-shadow: 0 4px 12px rgba(37, 211, 102, .2);
+        }
+
+        .final-checkout-button {
+            background: linear-gradient(135deg, var(--primary-color), #20b954);
+            color: white;
+            width: 100%;
+            margin-top: 20px;
+            padding: 16px;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+
+        .final-checkout-button:hover {
+            background: linear-gradient(135deg, #20b954, #25d366);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 211, 102, .3);
+        }
+
+        .payment-input-group {
+            margin-bottom: 16px;
+        }
+
+        .payment-input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-color);
+            font-size: 1em;
+        }
+
+        .payment-input-group input {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid #e5e7eb;
+            border-radius: var(--border-radius);
+            background-color: white;
+            color: var(--text-color);
+            font-size: 1em;
+            transition: border-color var(--transition-duration);
+        }
+
+        .payment-input-group input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 211, 102, .1);
+        }
+
+        #side-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, .4);
+            z-index: 3000;
+            display: none;
+            opacity: 0;
+            transition: opacity .3s ease-in-out;
+            backdrop-filter: blur(4px);
+        }
+
+        #side-menu.active {
+            display: block;
+            opacity: 1;
+        }
+
+        #side-menu-drawer {
+            width: 320px;
+            max-width: 85%;
+            height: 100%;
+            background-color: var(--card-bg);
+            padding: 24px;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, .15);
+            transform: translateX(-100%);
+            transition: transform .3s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            border-radius: 0 var(--border-radius-large) var(--border-radius-large) 0;
+        }
+
+        #side-menu.active #side-menu-drawer {
+            transform: translateX(0);
+        }
+
+        .side-menu-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .side-menu-link {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: var(--text-color);
+            padding: 16px 12px;
+            margin-bottom: 8px;
+            border-radius: var(--border-radius);
+            transition: all .2s;
+            font-weight: 500;
+            background: #f8f9fa;
+        }
+
+        .side-menu-link:hover {
+            background: linear-gradient(135deg, var(--primary-color), #20b954);
+            color: white;
+            transform: translateX(4px);
+        }
+
+        .side-menu-link i {
+            margin-right: 16px;
+            font-size: 1.8em;
+            color: var(--primary-color);
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding-top: var(--notification-height);
+            }
+
+            .notification-hidden body {
+                padding-top: 0;
+            }
+
+            header {
+                flex-wrap: wrap;
+                justify-content: space-around;
+                padding: 12px 5%;
+            }
+
+            .logo {
+                width: 100%;
+                justify-content: center;
+                margin-bottom: 12px;
+            }
+
+            #user-greeting {
+                display: none;
+            }
+
+            .nav-links {
+                margin-top: 12px;
+                order: 3;
+                width: 100%;
+                display: flex;
+                justify-content: flex-end;
+                padding-top: 8px;
+            }
+
+            .nav-links a {
+                margin-left: 12px;
+                font-size: .9em;
+                padding: 6px 10px;
+            }
+
+            .logo,
+            .cart-icon {
+                margin: 0 10px;
+            }
+
+            .hero-actions {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .hero-action-link {
+                width: 85%;
+                margin-bottom: 12px;
+                padding: 12px 20px;
+            }
+
+            .hero h1 {
+                font-size: 2.4em;
+            }
+
+            .hero p {
+                font-size: 1.1em;
+            }
+
+            .category-title {
+                margin-left: 20px;
+            }
+
+            .product-scroll-container {
+                padding: 0 20px 20px 20px;
+                gap: 12px;
+            }
+
+            #cart-modal .modal-content {
+                max-width: 100%;
+                padding: 20px;
+            }
+
+            .footer-content {
+                flex-direction: column;
+                gap: 32px;
+            }
+
+            .contact-section,
+            .social-section {
+                width: 100%;
+            }
+        }
+
+        /* Chat / WhatsApp-like styles */
+        .chat-container {
+            padding: 12px;
+            max-height: 60vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .chat-row {
+            display: flex;
+        }
+
+        .chat-row.align-end {
+            justify-content: flex-end;
+        }
+
+        .chat-bubble {
+            max-width: 75%;
+            padding: 10px 12px;
+            border-radius: 16px;
+            background: #fff;
+            box-shadow: var(--shadow-light);
+            font-size: 0.95rem;
+            color: #111827;
+            position: relative;
+        }
+
+        .chat-bubble.user {
+            background: linear-gradient(135deg, #dcf8c6, #bbf7d0);
+            /* WhatsApp green for sent messages */
+            border-bottom-right-radius: 4px;
+            text-align: right;
+            border: 1px solid #16a34a;
+            margin-left: auto;
+        }
+
+        .chat-bubble.admin {
+            background: linear-gradient(135deg, #ffffff, #f8fafc);
+            border-bottom-left-radius: 4px;
+            text-align: left;
+            border: 1px solid #e5e7eb;
+            margin-right: auto;
+        }
+
+        .chat-bubble.admin.direct-message {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border: 1px solid #f59e0b;
+        }
+
+        .chat-meta {
+            margin-top: 6px;
+            font-size: 0.75rem;
+            color: #6b7280;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .chat-reply {
+            background: linear-gradient(135deg, var(--primary-color), #ea580c);
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.85em;
+            transition: all var(--transition-duration);
+            box-shadow: 0 2px 4px rgba(249, 115, 22, 0.2);
+        }
+
+        .chat-reply:hover {
+            background: linear-gradient(135deg, #ea580c, #dc2626);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(249, 115, 22, 0.3);
+        }
+
+        .small-action {
+            min-width: 36px;
+            height: 36px;
+            padding: 0 8px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: #f1f5f9;
+            border: 1px solid #e6e9ee;
+            cursor: pointer;
+        }
+
+        /* Sending indicator styles */
+        .chat-sending-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.8rem;
+            color: #9ca3af;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .spinner {
+            width: 12px;
+            height: 12px;
+            border: 2px solid #e5e7eb;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .chat-bubble.sending {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- LOGIN MODAL -->
+    <div id="login-modal" class="modal-overlay active">
+        <div class="modal-content">
+            <h3 style="color: var(--primary-color); margin-bottom: 20px;">🔐 Login to Maricafe</h3>
+            <div id="login-message-container"></div>
+            <form id="login-form">
+                <div class="profile-form-group" style="margin-bottom: 15px;">
+                    <label for="login-pin">Enter Your 4-Digit PIN</label>
+                    <input type="password" id="login-pin" maxlength="4" required
+                        style="text-align: center; font-size: 1.5em; font-weight: bold;">
+                </div>
+                <button type="submit" class="shop-button"
+                    style="background-color: var(--secondary-color); color: var(--card-bg); width: 100%;">Login</button>
+            </form>
+            <p style="font-size: 0.8em; color: #94a3b8; margin-top: 15px; text-align: center;">Don't have an account? <a
+                    href="#" onclick="showRegisterModal()" style="color: var(--accent-color);">Register here</a></p>
+        </div>
+    </div>
+
+    <!-- REGISTER MODAL -->
+    <div id="register-modal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('register-modal')">&times;</span>
+            <h3 style="color: var(--primary-color); margin-bottom: 20px;"><i class="material-icons"
+                    style="vertical-align: middle; margin-right: 8px;">edit</i>Create Account</h3>
+            <div id="register-message-container"></div>
+            <form id="register-form">
+                <div class="profile-form-group" style="margin-bottom: 15px;">
+                    <label for="register-name">Full Name</label>
+                    <input type="text" id="register-name" required>
+                </div>
+                <div class="profile-form-group" style="margin-bottom: 15px;">
+                    <label for="register-email">Email Address</label>
+                    <input type="email" id="register-email" required>
+                </div>
+                <div class="profile-form-group" style="margin-bottom: 15px;">
+                    <label for="register-location">City/Location</label>
+                    <input type="text" id="register-location">
+                </div>
+                <div class="profile-form-group" style="margin-bottom: 25px;">
+                    <label for="register-pin">Create 4-Digit PIN</label>
+                    <input type="password" id="register-pin" maxlength="4" required
+                        style="text-align: center; font-size: 1.5em; font-weight: bold;">
+                </div>
+                <button type="submit" class="shop-button"
+                    style="background-color: var(--secondary-color); color: var(--card-bg); width: 100%;">Create
+                    Account</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="top-notification">🚨 Limited Time Offer: Get 10% off your first order with code SNACK10!<span
+            id="notification-close" title="Dismiss">&times;</span></div>
+    <header>
+        <a href="#" class="logo"><i class="material-icons"
+                style="vertical-align: middle; margin-right: 8px;">local_cafe</i>Maricafe<span
+                id="user-greeting">Welcome to Maricafe!</span></a>
+        <div id="menu-toggle" class="nav-links" onclick="openSideMenu()">
+            <i class="material-icons" style="font-size: 2em; cursor: pointer;">menu</i>
+        </div>
+    </header>
+    <main>
+        <section class="hero">
+            <h1>Your Daily Dose of Deliciousness!</h1>
+            <p>From sweet treats to savory crisps, find your perfect bite today.</p>
+            <div class="hero-actions">
+                <a href="tel:+256744759181" class="hero-action-link order-call-button"><i class="material-icons"
+                        style="vertical-align: middle; margin-right: 8px;">phone</i>Order a Snack (Call)</a>
+                <a href="https://wa.me/256744759181" target="_blank" class="hero-action-link chat-whatsapp-button"><i
+                        class="material-icons" style="vertical-align: middle; margin-right: 8px;">chat</i>Chat with Us
+                    (WhatsApp)</a>
+            </div>
+        </section>
+        <section id="products">
+            <h2>Explore Our Categories</h2>
+            <div id="category-sections"></div>
+        </section>
+    </main>
+    <footer>
+        <div class="footer-content">
+            <div class="contact-section">
+                <h4>Get in Touch</h4>
+                <form id="contact-form">
+                    <input type="text" name="name" placeholder="Your Name" required>
+                    <input type="email" name="email" placeholder="Your Email" required>
+                    <textarea name="message" placeholder="Your Message" required></textarea>
+                    <button type="submit" class="shop-button">Send Message</button>
+                    <div id="contact-message"></div>
+                </form>
+            </div>
+            <div class="social-section">
+                <h4>Connect With Us</h4>
+                <div class="social-icons">
+                    <a href="#" title="Facebook"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" title="Instagram"><i class="fab fa-instagram"></i></a>
+                    <a href="#" title="Twitter/X"><i class="fab fa-twitter"></i></a>
+                    <a href="#" title="TikTok"><i class="fab fa-tiktok"></i></a>
+                </div>
+                <p style="margin-top: 20px;">Follow us on social media for the latest snack drops and exclusive offers!
+                </p>
+            </div>
+        </div>
+        <div class="footer-copy">&copy; 2025 Maricafe. Connected to Database.</div>
+    </footer>
+
+    <!-- MODALS -->
+    <div id="about-modal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('about-modal')">&times;</span>
+            <h3 style="color: var(--primary-color); margin-bottom: 10px;">About Maricafe</h3>
+            <p style="margin-bottom: 15px;">Maricafe was founded in 2025 with a simple mission: to curate the most
+                delicious, crave-worthy snacks from around the world and deliver them right to your door. We believe
+                snacking should be an experience, not an afterthought.</p>
+            <p>We focus on quality ingredients, unique flavors, and finding that perfect balance between healthy and
+                indulgent. Enjoy your stay!</p>
+        </div>
+    </div>
+
+    <div id="profile-modal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('profile-modal')">&times;</span>
+            <h3 style="color: var(--primary-color); margin-bottom: 20px;"><i class="material-icons"
+                    style="vertical-align: middle; margin-right: 8px;">person</i>My Account Profile</h3>
+            <div id="profile-message-container"></div>
+            <div id="profile-pic-container" style="text-align: center; margin-bottom: 20px;">
+                <img id="profile-pic-preview" src="https://placehold.co/100x100/475569/f1f5f9?text=Profile"
+                    style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--accent-color);">
+                <br>
+                <input type="file" id="profile-pic-file" accept="image/*" style="margin-top: 10px;">
+            </div>
+            <form id="profile-form">
+                <div class="profile-form-group" style="margin-bottom: 15px;">
+                    <label for="profile-name">Full Name (Required)</label>
+                    <input type="text" id="profile-name" required>
+                </div>
+                <div class="profile-form-group" style="margin-bottom: 15px;">
+                    <label for="profile-email">Email Address</label>
+                    <input type="email" id="profile-email">
+                </div>
+                <div class="profile-form-group" style="margin-bottom: 25px;">
+                    <label for="profile-location">City/Location</label>
+                    <input type="text" id="profile-location">
+                </div>
+                <button type="submit" class="shop-button"
+                    style="background-color: var(--secondary-color); color: var(--card-bg); width: 100%;">Save
+                    Profile</button>
+            </form>
+            <p style="font-size: 0.8em; color: #94a3b8; margin-top: 15px;">*Profile data is saved to your account.</p>
+        </div>
+    </div>
+
+    <div id="cart-modal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('cart-modal')">&times;</span>
+            <h3 style="color: var(--primary-color); margin-bottom: 20px;">
+                <i class="material-icons" style="vertical-align: middle; margin-right: 8px;">shopping_cart</i>
+                Shopping Cart
+            </h3>
+            <div id="cart-message-container"></div>
+
+            <!-- Cart Items Section -->
+            <div id="cart-items-section" style="max-height: 400px; overflow-y: auto; margin-bottom: 20px;">
+                <div id="cart-items-list"></div>
+            </div>
+
+            <!-- Empty Cart Message -->
+            <div id="cart-empty-message" style="text-align: center; color: #94a3b8; padding: 40px 20px; display: none;">
+                <i class="material-icons" style="font-size: 3em; color: #64748b; margin-bottom: 16px;">shopping_cart</i>
+                <h4 style="margin-bottom: 8px; color: var(--text-color);">Your cart is empty</h4>
+                <p>Add some delicious snacks to get started!</p>
+            </div>
+
+            <!-- Cart Summary -->
+            <div id="cart-summary-section" style="display: none;">
+                <div style="border-top: 1px solid #e5e7eb; padding-top: 15px; margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: 500;">
+                        <span>Subtotal:</span>
+                        <span id="cart-subtotal">$0.00</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: 500;">
+                        <span>Discount:</span>
+                        <span id="cart-discount" style="color: #10b981;">-$0.00</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: 500;">
+                        <span>Tax:</span>
+                        <span id="cart-tax">$0.00</span>
+                    </div>
+                    <div
+                        style="display: flex; justify-content: space-between; font-size: 1.2em; font-weight: 700; color: var(--primary-color); padding: 10px 0;">
+                        <span>Total:</span>
+                        <span id="cart-total">$0.00</span>
+                    </div>
+                </div>
+
+                <div class="discount-row">
+                    <input id="cart-discount-code" type="text" placeholder="Discount code (e.g. SAVE10)">
+                    <button id="cart-apply-discount">Apply</button>
+                </div>
+
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button id="cart-clear-btn" title="Clear cart">Clear Cart</button>
+                    <div style="flex: 1; display:flex; gap:10px;">
+                        <button class="shop-button" style="flex: 1; background: #64748b;" onclick="closeModal('cart-modal')">Continue Shopping</button>
+                        <button class="shop-button cart-checkout" style="flex: 1;" onclick="Cart.proceedToCheckout()">Checkout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="payment-modal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('payment-modal')">&times;</span>
+            <h3 style="color: var(--primary-color); margin-bottom: 20px;">💰 Complete Your Payment</h3>
+            <div class="message-box" style="background:#f0f9ff; border-color:#3b82f6; color:var(--text-color);">Total
+                Amount Due: <strong id="payment-due-amount">$0.00</strong></div>
+            <p style="margin-bottom: 15px; font-weight: 500;">Select a payment method:</p>
+            <div id="payment-options-container">
+                <div class="payment-option" data-method="mtn" onclick="selectPayment('mtn')">
+                    <div class="payment-option-details">
+                        <i class="material-icons" style="color:#FFC300;">smartphone</i>
+                        <div>
+                            <h4>MTN Mobile Money</h4>
+                            <p>Pay instantly via your MTN MoMo account.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="payment-option" data-method="airtel" onclick="selectPayment('airtel')">
+                    <div class="payment-option-details">
+                        <i class="material-icons" style="color:#E50000;">phone_android</i>
+                        <div>
+                            <h4>Airtel Money</h4>
+                            <p>Fast and secure payment via Airtel Money.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="payment-option" data-method="marzpay" onclick="selectPayment('marzpay')">
+                    <div class="payment-option-details">
+                        <i class="material-icons" style="color:#00C853;">credit_card</i>
+                        <div>
+                            <h4>MarzPay</h4>
+                            <p>Secure payment processing for cards and wallets.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="payment-option" data-method="cod" onclick="selectPayment('cod')">
+                    <div class="payment-option-details">
+                        <i class="material-icons" style="color:#2A67AE;">attach_money</i>
+                        <div>
+                            <h4>Cash on Delivery (COD)</h4>
+                            <p>Pay when your order arrives. (3% Surcharge applies)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="payment-details-form" style="margin-top: 15px;"></div>
+            <div id="payment-message-container"></div>
+            <button class="shop-button final-checkout-button" onclick="confirmPayment()" disabled>Pay Now</button>
+        </div>
+    </div>
+
+    <!-- INBOX MODAL -->
+    <div id="inbox-modal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('inbox-modal')">&times;</span>
+            <h3 style="color: var(--primary-color); margin-bottom: 20px;"><i class="material-icons"
+                    style="vertical-align: middle; margin-right: 8px;">mail</i>My Inbox</h3>
+            <div id="inbox-message-container"></div>
+            <div id="inbox-messages-list" class="space-y-4" style="max-height: 400px; overflow-y: auto;">
+                <!-- Messages will be loaded here -->
+            </div>
+            <div id="inbox-empty-state" style="text-align: center; color: #94a3b8; padding: 40px 20px; display: none;">
+                <i class="material-icons" style="font-size: 3em; color: #64748b; margin-bottom: 16px;">mail_outline</i>
+                <h4 style="margin-bottom: 8px; color: var(--text-color);">No messages yet</h4>
+                <p>Your inbox is empty. Messages from Maricafe will appear here.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="side-menu" class="modal-overlay" onclick="if (event.target.id === 'side-menu') closeSideMenu()">
+        <div id="side-menu-drawer">
+            <div class="side-menu-header">
+                <a href="#" class="logo" style="font-size: 1.5em;"><i class="material-icons"
+                        style="vertical-align: middle; margin-right: 8px;">local_cafe</i>Menu</a>
+                <i class="material-icons" style="cursor: pointer;" onclick="closeSideMenu()">close</i>
+            </div>
+
+            <a href="#" class="side-menu-link" id="side-menu-profile"
+                onclick="closeSideMenu(); openModal('profile-modal'); loadUserProfile();">
+                <i class="material-icons">person</i>
+                My Profile
+            </a>
+
+            <a href="#" class="side-menu-link" id="side-menu-about"
+                onclick="closeSideMenu(); openModal('about-modal');">
+                <i class="material-icons">info</i>
+                About Maricafe
+            </a>
+
+            <a href="#" class="side-menu-link" id="side-menu-settings"
+                onclick="closeSideMenu(); showMessageBox('Settings page is not implemented yet.','error','top-notification');">
+                <i class="material-icons">settings</i>
+                Settings
+            </a>
+
+            <a href="#footer" class="side-menu-link" onclick="closeSideMenu()">
+                <i class="material-icons">mail</i>
+                Contact Us
+            </a>
+
+            <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid var(--light-bg);">
+                <p style="font-size: 0.8em; color: #94a3b8; text-align: center;">App Version 1.2.1</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="bottom-nav-bar">
+        <a href="#" class="bottom-nav-link" id="bottom-shop-link"
+            onclick="document.getElementById('products').scrollIntoView({ behavior: 'smooth' });">
+            <i class="material-icons">storefront</i>
+            <span>Shop</span>
+        </a>
+        <a href="#" class="bottom-nav-link" id="bottom-inbox-btn">
+            <div class="bottom-cart-wrapper">
+                <i class="material-icons">mail</i>
+                <span id="inbox-count" class="hidden">0</span>
+            </div>
+            <span>Inbox</span>
+        </a>
+        <a href="#" class="bottom-nav-link" id="bottom-profile-btn">
+            <i class="material-icons">person</i>
+            <span>Profile</span>
+        </a>
+        <a href="#" class="bottom-nav-link" id="bottom-cart-link">
+            <div class="bottom-cart-wrapper">
+                <i class="material-icons">shopping_cart</i>
+                <span id="cart-count">0</span>
+            </div>
+            <span>Cart</span>
+        </a>
+    </div>
+
+    <script src="actionBtn.js"></script>
+    <script>
+        // Global variables
+        let products = [];
+        let currentUser = null;
+        let finalPaymentAmount = 0;
+        // Use same-origin relative API base so the frontend uses the server port (e.g., 5505)
+        const API_BASE = '/api';
+        let isOnline = navigator.onLine;
+        let db = null; // IndexedDB for offline storage
+        let userMessages = [];
+
+        const finalCheckoutButton = document.querySelector('.final-checkout-button');
+        const paymentDueAmountElement = document.getElementById('payment-due-amount');
+        const paymentOptionsContainer = document.getElementById('payment-options-container');
+        const aboutButton = document.getElementById('side-menu-about');
+        const profileButton = document.getElementById('bottom-profile-btn');
+        const profileForm = document.getElementById('profile-form');
+        const cartIcon = document.getElementById('bottom-cart-link');
+        const notificationBar = document.getElementById('top-notification');
+        const notificationClose = document.getElementById('notification-close');
+        const contactForm = document.getElementById('contact-form');
+        const contactMessage = document.getElementById('contact-message');
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+
+        let synth = null;
+        let notificationSynth = null;
+        let audioContextStarted = false;
+        let selectedPaymentMethod = null;
+        let socket = null;
+        // When true, after successful login the UI should open the payment modal
+        let pendingCheckout = false;
+
+        // Audio functions
+        function initializeAudio() {
+            if (synth === null) {
+                synth = new Tone.Synth({
+                    oscillator: { type: "sine" },
+                    envelope: { attack: .005, decay: .1, sustain: .05, release: .5 }
+                }).toDestination();
+                notificationSynth = new Tone.Synth({
+                    oscillator: { type: "square" },
+                    envelope: { attack: .001, decay: .05, sustain: .05, release: .3 }
+                }).toDestination();
+            }
+        }
+
+        async function playCartSound() {
+            try {
+                if (!audioContextStarted) {
+                    await Tone.start();
+                    audioContextStarted = true;
+                }
+                if (synth) {
+                    synth.triggerAttackRelease("C6", "16n");
+                }
+            } catch (error) {
+                console.error("Error starting or playing cart audio:", error);
+            }
+        }
+
+        async function playNotificationSound() {
+            try {
+                if (!audioContextStarted) {
+                    await Tone.start();
+                    audioContextStarted = true;
+                }
+                if (notificationSynth) {
+                    notificationSynth.triggerAttackRelease("G5", "32n");
+                }
+            } catch (error) {
+                console.error("Error starting or playing notification audio:", error);
+            }
+        }
+
+        // Modal functions
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function openSideMenu() {
+            document.getElementById('side-menu').classList.add('active');
+        }
+
+        function closeSideMenu() {
+            document.getElementById('side-menu').classList.remove('active');
+        }
+
+        function showMessageBox(message, type, containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = `<div class="message-box ${type}">${message}</div>`;
+            playNotificationSound();
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 3000);
+        }
+
+        // Authentication functions
+        async function login(pin) {
+            try {
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pin })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    currentUser = data;
+                    closeModal('login-modal');
+                    updateGreeting();
+                    await loadProducts();
+                    await loadUserMessages();
+                    renderProducts();
+                    // Join user room for real-time notifications
+                    if (socket) {
+                        socket.emit('join-user', data.id);
+                    }
+                    showMessageBox('Welcome back, ' + data.name + '!', 'success', 'top-notification');
+                    // If the user was prompted to login at checkout, continue to payment
+                    if (pendingCheckout) {
+                        pendingCheckout = false;
+                        // Ensure cart totals and UI are up to date then open payment modal
+                        if (Cart) Cart.render();
+                        openPaymentModal();
+                    }
+                } else {
+                    throw new Error(data.error || 'Login failed');
+                }
+            } catch (error) {
+                showMessageBox(error.message, 'error', 'login-message-container');
+            }
+        }
+
+        async function register(userData) {
+            try {
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(userData)
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    closeModal('register-modal');
+                    showMessageBox('Account created successfully! Please login with your PIN.', 'success', 'top-notification');
+                    document.getElementById('register-form').reset();
+                } else {
+                    throw new Error(data.error || 'Registration failed');
+                }
+            } catch (error) {
+                showMessageBox(error.message, 'error', 'register-message-container');
+            }
+        }
+
+        function showRegisterModal() {
+            closeModal('login-modal');
+            openModal('register-modal');
+        }
+
+        function updateGreeting() {
+            const greetingEl = document.getElementById('user-greeting');
+            if (currentUser && currentUser.name) {
+                greetingEl.innerHTML = `Welcome back, <strong>${currentUser.name.split(' ')[0]}</strong>!`;
+            } else {
+                greetingEl.innerText = 'Welcome to Maricafe!';
+            }
+        }
+
+        // Socket.IO functions
+        function initializeSocket() {
+            // Connect to the Socket.IO server on the same origin (no hard-coded host/port)
+            socket = io();
+
+            socket.on('connect', () => {
+                console.log('Connected to server with Socket.IO');
+                if (currentUser) {
+                    socket.emit('join-user', currentUser.id);
+                }
+            });
+
+            socket.on('disconnect', () => {
+                console.log('Disconnected from server');
+            });
+
+            socket.on('new-message', (messageData) => {
+                console.log('New message received:', messageData);
+                // Refresh messages if inbox is open
+                if (currentUser) {
+                    loadUserMessages();
+                }
+                // Show notification
+                showMessageBox(`New message from ${messageData.fromUserId === 'admin' ? 'Maricafe' : 'Support'}`, 'info', 'top-notification');
+                playNotificationSound();
+            });
+
+            socket.on('snack-notification', (notificationData) => {
+                console.log('Snack notification:', notificationData);
+                showMessageBox(notificationData.message, 'success', 'top-notification');
+                playNotificationSound();
+
+                // Refresh products list
+                loadProducts().then(() => {
+                    renderProducts();
+                });
+            });
+
+            socket.on('order-status-update', (orderData) => {
+                console.log('Order status update:', orderData);
+                showMessageBox(`Order ${orderData.id} status: ${orderData.status}`, 'info', 'top-notification');
+                playNotificationSound();
+            });
+        }
+
+        function sendMessageViaSocket(fromUserId, toUserId, subject, content, type = 'message') {
+            if (socket && socket.connected) {
+                socket.emit('send-message', {
+                    fromUserId,
+                    toUserId,
+                    subject,
+                    content,
+                    type
+                });
+            } else {
+                console.error('Socket not connected');
+                // Fallback to HTTP API
+                sendMessageViaAPI(fromUserId, toUserId, subject, content, type);
+            }
+        }
+
+        async function sendMessageViaAPI(fromUserId, toUserId, subject, content, type = 'message') {
+            try {
+                await postData('messages', {
+                    fromUserId,
+                    toUserId,
+                    subject,
+                    content,
+                    type
+                });
+                showMessageBox('Message sent successfully!', 'success', 'inbox-message-container');
+            } catch (error) {
+                console.error('Error sending message:', error);
+                showMessageBox('Error sending message.', 'error', 'inbox-message-container');
+            }
+        }
+
+        // Product functions
+        async function loadProducts() {
+            try {
+                const response = await fetch(`${API_BASE}/snacks`);
+                products = await response.json();
+                window.products = products; // Make globally available for actionBtn.js
+            } catch (error) {
+                console.error('Error loading products:', error);
+                products = [];
+                window.products = products;
+            }
+        }
+
+        function renderProducts() {
+            const categorizedProducts = products.reduce((acc, product) => {
+                const category = product.category || 'Uncategorized';
+                if (!acc[category]) {
+                    acc[category] = [];
+                }
+                acc[category].push(product);
+                return acc;
+            }, {});
+
+            const categorySectionsContainer = document.getElementById('category-sections');
+            let html = '';
+
+            for (const category in categorizedProducts) {
+                const categoryProducts = categorizedProducts[category];
+                const productsHtml = categoryProducts.map(product => {
+                    const hasDiscount = product.discount && product.discount > 0;
+                    const discountedPrice = hasDiscount ? product.price * (1 - product.discount / 100) : product.price;
+
+                    return `
+                        <div class="product-card">
+                            ${hasDiscount ? `<div class="discount-badge">-${product.discount}% OFF</div>` : ''}
+                            <img src="${product.imageUrl || 'https://placehold.co/400x200/475569/f1f5f9?text=Snack'}" alt="${product.name}" onerror="this.onerror=null;this.src='https://placehold.co/400x200/475569/f1f5f9?text=Snack'">
+                            <div class="product-info">
+                                <div>
+                                    <h3>${product.name}</h3>
+                                    <p>${product.description || ''}</p>
+                                </div>
+                                <div class="card-bottom">
+                                    <div class="price">
+                                        ${hasDiscount ? `<span class="original-price">$${product.price.toFixed(2)}</span> ` : ''}
+                                        $${discountedPrice.toFixed(2)}
+                                    </div>
+                                    <div class="product-actions">
+                                        <button class="buy-now" data-id="${String(product.id).replace(/"/g, '"').replace(/'/g, ''')}" data-name="${String(product.name).replace(/"/g, '"').replace(/'/g, ''')}" title="Buy Now">
+                                            <i class="material-icons">shopping_bag</i><span>Buy Now</span>
+                                        </button>
+                                        <button class="share-btn" data-product-id="${String(product.id).replace(/"/g, '"').replace(/'/g, ''')}" title="Share Product">
+                                            <i class="material-icons">share</i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                html += `
+                    <div class="category-section">
+                        <h3 class="category-title">${category}</h3>
+                        <div class="product-scroll-container" id="list-${category.replace(/\s+/g, '-').toLowerCase()}">
+                            ${productsHtml}
+                        </div>
+                    </div>
+                `;
+            }
+
+            categorySectionsContainer.innerHTML = html;
+
+            // Initialize action button event listeners
+            setTimeout(() => {
+                if (window.initActionButtons) {
+                    window.initActionButtons();
+                }
+            }, 100);
+        }
+
+        // Cart functions (will be initialized from cart.js)
+        let Cart = null;
+
+        // Profile functions
+        async function loadUserProfile() {
+            if (!currentUser) return;
+
+            document.getElementById('profile-name').value = currentUser.name || '';
+            document.getElementById('profile-email').value = currentUser.email || '';
+            document.getElementById('profile-location').value = currentUser.location || '';
+
+            const profilePicPreview = document.getElementById('profile-pic-preview');
+            if (currentUser.profilePic) {
+                profilePicPreview.src = 'data:image/jpeg;base64,' + currentUser.profilePic;
+            } else {
+                profilePicPreview.src = 'https://placehold.co/100x100/475569/f1f5f9?text=Profile';
+            }
+        }
+
+        async function handleProfileSubmit(event) {
+            event.preventDefault();
+
+            if (!currentUser) {
+                showMessageBox('Please login first.', 'error', 'profile-message-container');
+                return;
+            }
+
+            const name = document.getElementById('profile-name').value.trim();
+            const email = document.getElementById('profile-email').value.trim();
+            const location = document.getElementById('profile-location').value.trim();
+
+            if (name === '') {
+                showMessageBox('Please enter your full name.', 'error', 'profile-message-container');
+                return;
+            }
+
+            // Handle profile picture upload
+            const fileInput = document.getElementById('profile-pic-file');
+            let profilePicBase64 = currentUser.profilePic;
+
+            if (fileInput.files[0]) {
+                try {
+                    profilePicBase64 = await fileToBase64(fileInput.files[0]);
+                } catch (error) {
+                    showMessageBox('Error uploading profile picture.', 'error', 'profile-message-container');
+                    return;
+                }
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('name', name);
+                formData.append('email', email);
+                formData.append('location', location);
+                if (fileInput.files[0]) {
+                    formData.append('profilePic', fileInput.files[0]);
+                }
+
+                const response = await fetch(API_BASE + '/users/' + currentUser.id + '/profile', {
+                    method: 'PUT',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    // Update current user data
+                    currentUser.name = name;
+                    currentUser.email = email;
+                    currentUser.location = location;
+                    if (profilePicBase64) {
+                        currentUser.profilePic = profilePicBase64;
+                    }
+
+                    updateGreeting();
+                    closeModal('profile-modal');
+                    showMessageBox('Profile updated! Welcome, ' + currentUser.name.split(' ')[0] + '.', 'success', 'cart-message-container');
+                } else {
+                    throw new Error('Failed to update profile');
+                }
+            } catch (error) {
+                showMessageBox('Error updating profile.', 'error', 'profile-message-container');
+            }
+        }
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                if (!file) {
+                    resolve(null);
+                    return;
+                }
+                if (file.size > 5 * 1024 * 1024) {
+                    reject(new Error("File size exceeds 5MB. Please choose a smaller image."));
+                    return;
+                }
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result.split(',')[1]); // Remove data:image/jpeg;base64, prefix
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        // Other functions
+        function shareProduct(productId) {
+            const product = products.find(p => p.id === productId);
+            if (!product) {
+                showMessageBox('Product not found for sharing.', 'error', 'top-notification');
+                return;
+            }
+
+            const shareData = {
+                title: 'Maricafe: ' + product.name,
+                text: 'Check out this delicious snack from Maricafe: ' + product.name + ' for $' + product.price.toFixed(2) + '!',
+                url: window.location.href.split('#')[0] + '#product-' + productId
+            };
+
+            if (navigator.share) {
+                navigator.share(shareData).then(() => {
+                    showMessageBox('Shared "' + product.name + '" using native app!', 'success', 'top-notification');
+                }).catch(error => {
+                    if (error.name !== 'AbortError') {
+                        console.error('Error sharing:', error);
+                        copyToClipboard(shareData.text, product.name);
+                    }
+                });
+            } else {
+                copyToClipboard(shareData.text, product.name);
+            }
+        }
+
+        function copyToClipboard(text, name) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showMessageBox('Share link for "' + name + '" copied to clipboard!', 'success', 'top-notification');
+        }
+
+        // Payment functions
+        function openPaymentModal() {
+            if (!Cart || Cart.items.length === 0) {
+                showMessageBox("Your cart is empty! Add some snacks first.", 'error', 'cart-message-container');
+                return;
+            }
+            // Require a logged-in (non-guest) user at checkout
+            if (!currentUser || (currentUser.id && String(currentUser.id).startsWith('guest_'))) {
+                pendingCheckout = true;
+                showMessageBox('Please login to complete checkout.', 'info', 'top-notification');
+                openModal('login-modal');
+                return;
+            }
+
+            closeModal('cart-modal');
+            const totals = Cart.getTotals();
+            finalPaymentAmount = totals.total;
+            paymentDueAmountElement.innerText = '$' + totals.total.toFixed(2);
+            selectedPaymentMethod = null;
+            finalCheckoutButton.disabled = true;
+            document.querySelectorAll('.payment-option').forEach(el => el.classList.remove('selected'));
+            document.getElementById('payment-details-form').innerHTML = '';
+            openModal('payment-modal');
+        }
+
+        function selectPayment(method) {
+            selectedPaymentMethod = method;
+            document.querySelectorAll('.payment-option').forEach(el => {
+                el.classList.remove('selected');
+            });
+            document.querySelector('.payment-option[data-method="' + method + '"]').classList.add('selected');
+
+            const totals = Cart.getTotals();
+            const baseTotal = totals.total;
+
+            if (method === 'cod') {
+                finalPaymentAmount = baseTotal * 1.03;
+                finalCheckoutButton.innerText = 'Place Order';
+            } else {
+                finalPaymentAmount = baseTotal;
+                finalCheckoutButton.innerText = 'Pay Now';
+            }
+
+            document.getElementById('payment-due-amount').innerText = '$' + finalPaymentAmount.toFixed(2);
+            renderPaymentForm(method);
+        }
+
+        function renderPaymentForm(method) {
+            const formContainer = document.getElementById('payment-details-form');
+            let formHtml = '';
+            const totals = Cart.getTotals();
+            const baseAmountDue = totals.total.toFixed(2);
+            const finalAmountDue = finalPaymentAmount.toFixed(2);
+
+            if (method === 'mtn' || method === 'airtel') {
+                formHtml = '<div class="payment-input-group"><label for="payment-phone">Mobile Phone Number</label><input type="tel" id="payment-phone" placeholder="e.g., +2567xxxxxxxx" required oninput="validatePaymentForm()"></div><div class="payment-input-group"><label for="payment-amount">Amount Due</label><input type="text" id="payment-amount" value="$' + baseAmountDue + '" readonly style="font-weight: bold; background-color: #f8f9fa;"></div>';
+            } else if (method === 'marzpay') {
+                formHtml = '<div class="payment-input-group"><label for="payment-card-id">Card Number or MarzPay Email</label><input type="text" id="payment-card-id" placeholder="Enter Card Number or Email" required oninput="validatePaymentForm()"></div><div class="payment-input-group"><label for="payment-amount">Amount Due</label><input type="text" id="payment-amount" value="$' + baseAmountDue + '" readonly style="font-weight: bold; background-color: #f8f9fa;"></div>';
+            } else if (method === 'cod') {
+                const baseTotalNum = parseFloat(baseAmountDue);
+                const surcharge = (finalPaymentAmount - baseTotalNum).toFixed(2);
+                formHtml = '<div class="message-box" style="background:#f0f9ff; border-color:#3b82f6; color:#1e40af; text-align: left;"><h4 style="margin-bottom: 5px;">Cash on Delivery selected.</h4><p>Base Total: $' + baseAmountDue + '</p><p>+ 3% COD Surcharge: $' + surcharge + '</p><p style="font-size: 1.1em; font-weight: bold;">Final Total Due on Delivery: $' + finalAmountDue + '</p></div>';
+            }
+
+            formContainer.innerHTML = formHtml;
+            validatePaymentForm();
+        }
+
+        function validatePaymentForm() {
+            const phoneInput = document.getElementById('payment-phone');
+            const cardInput = document.getElementById('payment-card-id');
+            const finalCheckoutButton = document.querySelector('.final-checkout-button');
+            let isValid = false;
+
+            if (selectedPaymentMethod === 'mtn' || selectedPaymentMethod === 'airtel') {
+                isValid = phoneInput && phoneInput.value.trim().length >= 10;
+            } else if (selectedPaymentMethod === 'marzpay') {
+                isValid = cardInput && cardInput.value.trim().length > 0;
+            } else if (selectedPaymentMethod === 'cod') {
+                isValid = true;
+            }
+
+            finalCheckoutButton.disabled = !isValid;
+        }
+
+        async function confirmPayment() {
+            // Ensure user is authenticated before placing the order
+            if (!currentUser || (currentUser.id && String(currentUser.id).startsWith('guest_'))) {
+                pendingCheckout = true;
+                showMessageBox('Please login to place this order.', 'info', 'payment-message-container');
+                openModal('login-modal');
+                return;
+            }
+
+            if (!selectedPaymentMethod) {
+                showMessageBox('Please select a payment method.', 'error', 'payment-message-container');
+                return;
+            }
+
+            try {
+                const checkoutData = Cart.getCheckoutData();
+                const orderData = {
+                    userId: currentUser.id,
+                    total: finalPaymentAmount,
+                    items: checkoutData.items,
+                    paymentMethod: selectedPaymentMethod,
+                    subtotal: checkoutData.subtotal,
+                    discount: checkoutData.discount,
+                    tax: checkoutData.tax
+                };
+
+                const response = await fetch(API_BASE + '/orders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(orderData)
+                });
+
+                if (response.ok) {
+                    closeModal('payment-modal');
+                    let successMessage;
+                    if (selectedPaymentMethod === 'cod') {
+                        const baseTotalNum = checkoutData.subtotal - checkoutData.discount + checkoutData.tax;
+                        const surcharge = (finalPaymentAmount - baseTotalNum).toFixed(2);
+                        successMessage = 'Order confirmed! Total of $' + finalPaymentAmount.toFixed(2) + ' (includes $' + surcharge + ' COD fee) due on delivery. Thank you!';
+                    } else {
+                        successMessage = 'Payment of $' + finalPaymentAmount.toFixed(2) + ' successful via ' + selectedPaymentMethod.toUpperCase() + '! Your order is being processed.';
+                    }
+
+                    showMessageBox(successMessage, 'success', 'top-notification');
+                    Cart.clear();
+                    Cart.render();
+                } else {
+                    throw new Error('Failed to place order');
+                }
+            } catch (error) {
+                showMessageBox('Error placing order.', 'error', 'payment-message-container');
+            }
+        }
+
+        // Contact form
+        function handleContactSubmit(event) {
+            event.preventDefault();
+
+            if (!currentUser) {
+                showMessageBox('Please login first to send messages.', 'error', 'contact-message');
+                return;
+            }
+
+            const name = contactForm.querySelector('input[name="name"]').value;
+            const email = contactForm.querySelector('input[name="email"]').value;
+            const message = contactForm.querySelector('textarea[name="message"]').value;
+
+            if (!name || !email || !message) {
+                showMessageBox('Please fill all fields.', 'error', 'contact-message');
+                return;
+            }
+
+            // Send message via Socket.IO
+            sendMessageViaSocket(currentUser.id, 'admin', 'Contact from ' + name, 'Email: ' + email + '\n\n' + message, 'contact');
+
+            contactMessage.innerText = 'Thank you for your message! We will be in touch soon.';
+            playNotificationSound();
+            contactForm.reset();
+            setTimeout(() => {
+                contactMessage.innerText = '';
+            }, 4000);
+        }
+
+        // Notification dismiss
+        function dismissNotification() {
+            notificationBar.style.display = 'none';
+            document.documentElement.classList.add('notification-hidden');
+        }
+
+        // Inbox functions
+        async function loadUserMessages() {
+            if (!currentUser) return;
+
+            try {
+                const response = await fetch(API_BASE + '/messages/' + currentUser.id);
+                userMessages = await response.json();
+                updateInboxCount();
+            } catch (error) {
+                console.error('Error loading user messages:', error);
+                userMessages = [];
+            }
+        }
+
+        function updateInboxCount() {
+            const unreadCount = userMessages.filter(msg => !msg.isRead && msg.fromUserId !== currentUser.id).length;
+            const inboxCountElement = document.getElementById('inbox-count');
+
+            if (!inboxCountElement) {
+                console.error('inbox-count element not found');
+                return;
+            }
+
+            if (unreadCount > 0) {
+                inboxCountElement.textContent = unreadCount > 99 ? '99+' : unreadCount;
+                inboxCountElement.classList.remove('hidden');
+            } else {
+                inboxCountElement.classList.add('hidden');
+            }
+        }
+
+        function openInbox() {
+            if (!currentUser) {
+                showMessageBox('Please login first to view your inbox.', 'error', 'top-notification');
+                openModal('login-modal');
+                return;
+            }
+
+            renderInboxMessages();
+            openModal('inbox-modal');
+        }
+
+        function renderInboxMessages() {
+            const messagesList = document.getElementById('inbox-messages-list');
+            const emptyState = document.getElementById('inbox-empty-state');
+
+            if (userMessages.length === 0) {
+                messagesList.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+
+            // Sort messages chronologically (oldest first) for chat feel
+            const sortedMessages = userMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+            messagesList.innerHTML = `
+                <div class="chat-container">
+                    ${sortedMessages.map(msg => {
+                const isFromUser = msg.fromUserId === currentUser.id;
+                const isAdmin = msg.fromUserId === 'admin';
+                const isSending = msg.id && msg.id.startsWith('local_');
+                let bubbleClass = isFromUser ? 'chat-bubble user' : 'chat-bubble admin';
+                if (isAdmin && msg.type !== 'broadcast') {
+                    bubbleClass += ' direct-message';
+                }
+                const bubbleClassWithSending = isSending ? bubbleClass + ' sending' : bubbleClass;
+                return `
+                            <div class="chat-row ${isFromUser ? 'align-end' : ''}">
+                                <div class="${bubbleClassWithSending}">
+                                    <div class="chat-content">${msg.content.replace(/\n/g, '<br/>')}</div>
+                                    <div class="chat-meta">
+                                        <span class="chat-time">${new Date(msg.timestamp).toLocaleString()}</span>
+                                        ${isSending ? '<span class="chat-sending-indicator"><span class="spinner"></span>Sending</span>' : ''}
+                                        ${isAdmin && msg.type !== 'broadcast' ? `<button class="chat-reply" onclick="showInlineReply('${msg.id}', '${msg.fromUserId}')">Reply</button>` : ''}
+                                    </div>
+                                                    <div id="reply-container-${msg.id}" class="reply-composer-container" style="margin-top:8px;"></div>
+                                                </div>
+                            </div>
+                        `;
+            }).join('')}
+                </div>
+            `;
+        }
+
+        async function markMessageAsRead(messageId) {
+            try {
+                await fetch(`${API_BASE}/messages/${messageId}/read`, { method: 'PUT' });
+                await loadUserMessages(); // Reload messages
+                renderInboxMessages(); // Re-render
+                showMessageBox('Message marked as read.', 'success', 'inbox-message-container');
+            } catch (error) {
+                console.error('Error marking message as read:', error);
+                showMessageBox('Error updating message.', 'error', 'inbox-message-container');
+            }
+        }
+
+        // Reply to admin (from user) — open inline composer or send via socket/API
+        function replyToAdmin(messageId, toUserId) {
+            // For backward compatibility, open the inline composer
+            showInlineReply(messageId, toUserId);
+        }
+
+        // Show an inline reply composer under the specified message
+        function showInlineReply(messageId, toUserId) {
+            if (!currentUser) {
+                showMessageBox('Please login to reply.', 'error', 'top-notification');
+                openModal('login-modal');
+                return;
+            }
+
+            const container = document.getElementById('reply-container-' + messageId);
+            if (!container) return;
+
+            // If composer already exists, focus it
+            if (container.querySelector('#reply-input-' + messageId)) {
+                container.querySelector('#reply-input-' + messageId).focus();
+                return;
+            }
+
+            container.innerHTML = `
+                <div style="display:flex; gap:8px; align-items:center">
+                    <input id="reply-input-${messageId}" placeholder="Write a reply..." class="p-2 rounded-md border" style="flex:1; min-width:120px;" />
+                    <button class="chat-reply" title="Send" onclick="sendInlineReply('${messageId}', '${toUserId}')"><i class="material-icons">send</i></button>
+                    <button class="chat-reply" title="Cancel" onclick="hideInlineReply('${messageId}')"><i class="material-icons">close</i></button>
+                </div>
+            `;
+
+            // Auto-focus
+            setTimeout(() => {
+                const inp = document.getElementById('reply-input-' + messageId);
+                if (inp) inp.focus();
+            }, 50);
+        }
+
+        function hideInlineReply(messageId) {
+            const container = document.getElementById('reply-container-' + messageId);
+            if (container) container.innerHTML = '';
+        }
+
+        // Send reply from inline composer
+        async function sendInlineReply(messageId, toUserId) {
+            const input = document.getElementById('reply-input-' + messageId);
+            if (!input) return;
+            const text = input.value.trim();
+            if (!text) {
+                showMessageBox('Please enter a reply message.', 'error', 'top-notification');
+                return;
+            }
+            // Optimistic UI: render the reply locally immediately
+            try {
+                const localId = 'local_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+                const newMsg = {
+                    id: localId,
+                    fromUserId: currentUser.id,
+                    toUserId: toUserId,
+                    subject: 'Re:',
+                    content: text,
+                    timestamp: new Date().toISOString(),
+                    type: 'reply',
+                    isRead: 0
+                };
+
+                // Append to local messages and re-render
+                userMessages.push(newMsg);
+                renderInboxMessages();
+                hideInlineReply(messageId);
+
+                // Send in background
+                if (socket && socket.connected) {
+                    socket.emit('send-message', newMsg);
+                } else {
+                    await postData('messages', newMsg);
+                }
+
+                // After server processes, reload messages to sync and replace local placeholders
+                setTimeout(async () => {
+                    try {
+                        await loadUserMessages();
+                        renderInboxMessages();
+                    } catch (err) {
+                        console.error('Error reloading messages:', err);
+                    }
+                }, 500);
+                showMessageBox('Reply sent!', 'success', 'top-notification');
+            } catch (err) {
+                console.error('Error sending reply:', err);
+                showMessageBox('Failed to send reply.', 'error', 'top-notification');
+            }
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', async () => {
+            initializeAudio();
+            initializeSocket();
+
+            // Show login modal on load
+            openModal('login-modal');
+
+            // Form event listeners
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const pin = document.getElementById('login-pin').value;
+                login(pin);
+            });
+
+            registerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('register-name').value.trim();
+                const email = document.getElementById('register-email').value.trim();
+                const location = document.getElementById('register-location').value.trim();
+                const pin = document.getElementById('register-pin').value;
+
+                if (!name || !email || !pin) {
+                    showMessageBox('Please fill all required fields.', 'error', 'register-message-container');
+                    return;
+                }
+
+                await register({ name, email, pin, location });
+            });
+
+            profileForm.addEventListener('submit', handleProfileSubmit);
+            contactForm.addEventListener('submit', handleContactSubmit);
+            notificationClose.addEventListener('click', dismissNotification);
+
+            profileButton.addEventListener('click', () => {
+                if (!currentUser) {
+                    openModal('login-modal');
+                    return;
+                }
+                openModal('profile-modal');
+                loadUserProfile();
+            });
+
+            cartIcon.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (Cart) {
+                    Cart.render();
+                    openModal('cart-modal');
+                }
+            });
+
+            // Inbox button
+            const inboxButton = document.getElementById('bottom-inbox-btn');
+            if (inboxButton) {
+                inboxButton.addEventListener('click', openInbox);
+            }
+
+            // PWA Service Worker Registration
+            initializePWA();
+        });
+
+        // PWA Functions
+        function initializePWA() {
+            // Register service worker
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                    .then(registration => {
+                        console.log('Service Worker registered:', registration);
+
+                        // Check for updates
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            if (newWorker) {
+                                newWorker.addEventListener('statechange', () => {
+                                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                        showUpdateNotification();
+                                    }
+                                });
+                            }
+                        });
+
+                        // Register background sync
+                        if ('sync' in registration) {
+                            registerBackgroundSync(registration);
+                        }
+
+                        // Register periodic sync if supported
+                        if ('periodicSync' in registration) {
+                            registerPeriodicSync(registration);
+                        }
+
+                        // Listen for messages from service worker
+                        navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
+
+                        // Request notification permission
+                        requestNotificationPermission();
+                    })
+                    .catch(error => {
+                        console.error('Service Worker registration failed:', error);
+                    });
+            }
+        }
+
+        // Handle install prompt
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            showInstallPrompt();
+        });
+
+        // Handle app installed
+        window.addEventListener('appinstalled', () => {
+            console.log('PWA installed');
+            hideInstallPrompt();
+            showMessageBox('Maricafe PWA installed successfully!', 'success', 'top-notification');
+        });
+
+        // Handle online/offline status
+        window.addEventListener('online', () => {
+            showMessageBox('You are back online!', 'success', 'top-notification');
+            // Sync any pending data
+            if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
+                navigator.serviceWorker.ready.then(registration => {
+                    registration.sync.register('sync-orders');
+                });
+            }
+        });
+
+        window.addEventListener('offline', () => {
+            showMessageBox('You are offline. Some features may be limited.', 'warning', 'top-notification');
+        });
+
+        function requestNotificationPermission() {
+            if ('Notification' in window && navigator.serviceWorker) {
+                if (Notification.permission === 'default') {
+                    setTimeout(() => {
+                        if (confirm('Would you like to receive notifications about new snacks and offers?')) {
+                            Notification.requestPermission().then(permission => {
+                                if (permission === 'granted') {
+                                    showMessageBox('Notifications enabled! You\'ll be notified about new snacks.', 'success', 'top-notification');
+                                }
+                            });
+                        }
+                    }, 5000); // Ask after 5 seconds
+                }
+            }
+        }
+
+        function showInstallPrompt() {
+            // Create install prompt banner
+            const installBanner = document.createElement('div');
+            installBanner.id = 'install-banner';
+            installBanner.innerHTML = `
+                <div style="position: fixed; bottom: 70px; left: 10px; right: 10px; background: var(--card-bg); border: 1px solid var(--accent-color); border-radius: var(--border-radius); padding: 16px; box-shadow: var(--shadow-light); z-index: 1000; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="flex: 1;">
+                        <h4 style="margin: 0; color: var(--text-color); font-size: 1em;">Install Maricafe</h4>
+                        <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 0.9em;">Add to home screen for the best experience</p>
+                    </div>
+                    <div>
+                        <button onclick="installPWA()" style="background: var(--primary-color); color: white; border: none; padding: 8px 16px; border-radius: var(--border-radius); margin-right: 8px; cursor: pointer;">Install</button>
+                        <button onclick="hideInstallPrompt()" style="background: transparent; color: #94a3b8; border: none; padding: 8px; cursor: pointer;">✕</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(installBanner);
+        }
+
+        function hideInstallPrompt() {
+            const banner = document.getElementById('install-banner');
+            if (banner) {
+                banner.remove();
+            }
+        }
+
+        async function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    console.log('User accepted PWA install');
+                }
+                deferredPrompt = null;
+                hideInstallPrompt();
+            }
+        }
+
+        function showUpdateNotification() {
+            const updateBanner = document.createElement('div');
+            updateBanner.id = 'update-banner';
+            updateBanner.innerHTML = `
+                <div style="position: fixed; top: 40px; left: 10px; right: 10px; background: var(--success-color); border-radius: var(--border-radius); padding: 16px; box-shadow: var(--shadow-light); z-index: 1000; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="flex: 1;">
+                        <h4 style="margin: 0; color: white; font-size: 1em;">Update Available</h4>
+                        <p style="margin: 4px 0 0 0; color: rgba(255,255,255,0.9); font-size: 0.9em;">A new version of Maricafe is available</p>
+                    </div>
+                    <div>
+                        <button onclick="updatePWA()" style="background: white; color: var(--success-color); border: none; padding: 8px 16px; border-radius: var(--border-radius); margin-right: 8px; cursor: pointer; font-weight: 600;">Update</button>
+                        <button onclick="hideUpdateNotification()" style="background: transparent; color: white; border: none; padding: 8px; cursor: pointer;">✕</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(updateBanner);
+        }
+
+        function hideUpdateNotification() {
+            const banner = document.getElementById('update-banner');
+            if (banner) {
+                banner.remove();
+            }
+        }
+
+        function updatePWA() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.ready.then(registration => {
+                    registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
+                });
+            }
+            hideUpdateNotification();
+            location.reload();
+        }
+
+        // Register background sync
+        function registerBackgroundSync(registration) {
+            // Register sync when user comes back online
+            window.addEventListener('online', () => {
+                registration.sync.register('sync-resources').then(() => {
+                    console.log('Background sync registered for resources');
+                }).catch(error => {
+                    console.log('Background sync registration failed:', error);
+                });
+            });
+
+            // Register message sync
+            registration.sync.register('sync-messages').then(() => {
+                console.log('Background sync registered for messages');
+            }).catch(error => {
+                console.log('Message sync registration failed:', error);
+            });
+        }
+
+        // Register periodic sync
+        function registerPeriodicSync(registration) {
+            // Register periodic sync for updates (every 30 minutes)
+            registration.periodicSync.register('update-resources', {
+                minInterval: 30 * 60 * 1000 // 30 minutes
+            }).then(() => {
+                console.log('Periodic sync registered');
+            }).catch(error => {
+                console.log('Periodic sync registration failed:', error);
+            });
+
+            // Register periodic check for updates (every hour)
+            registration.periodicSync.register('check-updates', {
+                minInterval: 60 * 60 * 1000 // 1 hour
+            }).catch(error => {
+                console.log('Update check sync registration failed:', error);
+            });
+        }
+
+        // Handle messages from service worker
+        function handleServiceWorkerMessage(event) {
+            const { type, data } = event.data;
+
+            switch (type) {
+                case 'cache-updated':
+                    if (data.type === 'products') {
+                        console.log('Product cache updated, refreshing products...');
+                        loadProducts().then(() => {
+                            renderProducts();
+                            showMessageBox('Products updated automatically!', 'success', 'top-notification');
+                        });
+                    }
+                    break;
+
+                case 'sync-complete':
+                    console.log('Background sync completed');
+                    showMessageBox('Data synchronized successfully!', 'success', 'top-notification');
+                    // Refresh all data
+                    loadProducts().then(() => renderProducts());
+                    if (currentUser) {
+                        loadUserMessages();
+                    }
+                    break;
+
+                case 'messages-synced':
+                    if (currentUser && data.userId === currentUser.id) {
+                        console.log('Messages synced, refreshing inbox...');
+                        loadUserMessages();
+                        showMessageBox('Messages updated!', 'info', 'top-notification');
+                    }
+                    break;
+
+                case 'update-available':
+                    console.log('New version available:', data.newVersion);
+                    showUpdateNotification();
+                    break;
+
+                case 'GET_DATA':
+                    // Respond to service worker data requests
+                    const responseData = {};
+                    if (data.key === 'currentUser') {
+                        responseData[data.key] = currentUser;
+                    }
+                    event.ports[0].postMessage(responseData);
+                    break;
+            }
+        }
+
+        // Check PWA installation status
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            console.log('Running as PWA');
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,5 @@
+     /* Custom scrollbar for better aesthetics */
+        body::-webkit-scrollbar { width: 8px; }
+        body::-webkit-scrollbar-thumb { background-color: #f97316; border-radius: 4px; }
+        body { font-family: 'Inter', sans-serif; }
+   

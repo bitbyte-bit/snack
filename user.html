@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maricafe - Delicious Snacks & Drinks</title>
+    <meta name="description" content="Your daily dose of delicious snacks and drinks with modern ordering experience">
+    <meta name="keywords" content="snacks, drinks, food delivery, cafe, ordering">
+    <meta name="author" content="Maricafe">
+    <meta name="theme-color" content="#f97316">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Maricafe">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="msapplication-TileColor" content="#f97316">
+    <meta name="msapplication-config" content="/browserconfig.xml">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🫖</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192' fill='%23f1f5f9'><circle cx='96' cy='96' r='88' fill='%23f97316'/><text x='96' y='120' font-family='Arial, sans-serif' font-size='120' text-anchor='middle' fill='%23f1f5f9'>🫖</text></svg>">
+    <link rel="manifest" href="/manifest.json">
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Load Tone.js for sound effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <!-- Load Socket.IO -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#f97316',
+                        'secondary': '#1e293b',
+                        'accent': '#fb923c',
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        .hero-bg {
+            background: linear-gradient(135deg, #f97316, #20b954);
+        }
+        .card-hover {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            transition: all 0.2s;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #ea580c, #dc2626);
+            transform: translateY(-1px);
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            transition: all 0.2s;
+        }
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            transform: translateY(-1px);
+        }
+        .chat-bubble-user {
+            background: linear-gradient(135deg, #dcf8c6, #bbf7d0);
+            margin-left: auto;
+        }
+        .chat-bubble-admin {
+            background: linear-gradient(135deg, #ffffff, #f8fafc);
+            margin-right: auto;
+        }
+        .chat-bubble-admin.direct {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen text-gray-800">
+    <!-- Top Notification -->
+    <div id="top-notification" class="bg-gradient-to-r from-primary to-green-500 text-white text-center py-2 px-4 text-sm font-semibold shadow-md">
+        🚨 Limited Time Offer: Get 10% off your first order with code SNACK10!
+        <button id="notification-close" class="float-right ml-4 font-bold">&times;</button>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-white shadow-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-3">
+                    <i data-lucide="coffee" class="w-8 h-8 text-primary"></i>
+                    <h1 class="text-2xl font-bold text-secondary">Maricafe</h1>
+                    <span id="user-greeting" class="text-sm text-gray-600 hidden sm:block">Welcome to Maricafe!</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="menu-btn" class="md:hidden p-2 text-secondary">
+                        <i data-lucide="menu" class="w-6 h-6"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-menu" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden md:hidden">
+        <div class="bg-white w-64 h-full p-6">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-xl font-bold text-secondary">Menu</h2>
+                <button id="close-menu" class="p-2">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <nav class="space-y-4">
+                <a href="#products" class="block py-3 px-4 rounded-lg hover:bg-gray-100 transition">Shop</a>
+                <a href="#about" class="block py-3 px-4 rounded-lg hover:bg-gray-100 transition">About</a>
+                <a href="#contact" class="block py-3 px-4 rounded-lg hover:bg-gray-100 transition">Contact</a>
+                <button id="mobile-profile" class="block w-full text-left py-3 px-4 rounded-lg hover:bg-gray-100 transition">Profile</button>
+                <button id="mobile-inbox" class="block w-full text-left py-3 px-4 rounded-lg hover:bg-gray-100 transition">Inbox</button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Hero Section -->
+    <section class="hero-bg text-white py-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h1 class="text-4xl md:text-6xl font-bold mb-6">Your Daily Dose of Deliciousness!</h1>
+            <p class="text-xl md:text-2xl mb-8 opacity-90">From sweet treats to savory crisps, find your perfect bite today.</p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="tel:+256744759181" class="btn-primary text-white px-8 py-4 rounded-lg font-semibold flex items-center justify-center space-x-2">
+                    <i data-lucide="phone" class="w-5 h-5"></i>
+                    <span>Order a Snack (Call)</span>
+                </a>
+                <a href="https://wa.me/256744759181" target="_blank" class="bg-white text-primary px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition flex items-center justify-center space-x-2">
+                    <i data-lucide="message-circle" class="w-5 h-5"></i>
+                    <span>Chat with Us (WhatsApp)</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Products Section -->
+    <section id="products" class="py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-center text-secondary mb-12">Explore Our Categories</h2>
+            <div id="category-sections" class="space-y-12">
+                <!-- Categories will be loaded here -->
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="bg-white py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h2 class="text-3xl font-bold text-secondary mb-6">About Maricafe</h2>
+                <p class="text-lg text-gray-600 max-w-3xl mx-auto">
+                    Maricafe was founded in 2025 with a simple mission: to curate the most delicious, crave-worthy snacks from around the world and deliver them right to your door. We believe snacking should be an experience, not an afterthought.
+                </p>
+                <p class="text-lg text-gray-600 max-w-3xl mx-auto mt-4">
+                    We focus on quality ingredients, unique flavors, and finding that perfect balance between healthy and indulgent. Enjoy your stay!
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="bg-gray-100 py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid md:grid-cols-2 gap-12">
+                <div>
+                    <h2 class="text-3xl font-bold text-secondary mb-6">Get in Touch</h2>
+                    <form id="contact-form" class="space-y-4">
+                        <div>
+                            <label for="contact-name" class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                            <input type="text" id="contact-name" name="name" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                        </div>
+                        <div>
+                            <label for="contact-email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input type="email" id="contact-email" name="email" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                        </div>
+                        <div>
+                            <label for="contact-message" class="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                            <textarea id="contact-message" name="message" rows="4" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"></textarea>
+                        </div>
+                        <button type="submit" class="btn-primary text-white px-8 py-3 rounded-lg font-semibold w-full">Send Message</button>
+                        <div id="contact-response" class="text-sm text-green-600"></div>
+                    </form>
+                </div>
+                <div>
+                    <h2 class="text-3xl font-bold text-secondary mb-6">Connect With Us</h2>
+                    <div class="flex space-x-6 mb-8">
+                        <a href="#" class="text-3xl text-gray-600 hover:text-primary transition"><i data-lucide="facebook"></i></a>
+                        <a href="#" class="text-3xl text-gray-600 hover:text-primary transition"><i data-lucide="instagram"></i></a>
+                        <a href="#" class="text-3xl text-gray-600 hover:text-primary transition"><i data-lucide="twitter"></i></a>
+                        <a href="#" class="text-3xl text-gray-600 hover:text-primary transition"><i data-lucide="music"></i></a>
+                    </div>
+                    <p class="text-gray-600">Follow us on social media for the latest snack drops and exclusive offers!</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-40">
+        <div class="flex justify-around items-center py-2">
+            <button id="nav-home" class="flex flex-col items-center p-2 text-gray-600 hover:text-primary transition">
+                <i data-lucide="home" class="w-6 h-6"></i>
+                <span class="text-xs mt-1">Home</span>
+            </button>
+            <button id="nav-inbox" class="flex flex-col items-center p-2 text-gray-600 hover:text-primary transition relative">
+                <i data-lucide="mail" class="w-6 h-6"></i>
+                <span id="nav-inbox-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+                <span class="text-xs mt-1">Inbox</span>
+            </button>
+            <button id="nav-profile" class="flex flex-col items-center p-2 text-gray-600 hover:text-primary transition">
+                <i data-lucide="user" class="w-6 h-6"></i>
+                <span class="text-xs mt-1">Profile</span>
+            </button>
+            <button id="nav-settings" class="flex flex-col items-center p-2 text-gray-600 hover:text-primary transition">
+                <i data-lucide="settings" class="w-6 h-6"></i>
+                <span class="text-xs mt-1">Settings</span>
+            </button>
+            <button id="nav-cart" class="flex flex-col items-center p-2 text-gray-600 hover:text-primary transition relative">
+                <i data-lucide="shopping-cart" class="w-6 h-6"></i>
+                <span id="nav-cart-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+                <span class="text-xs mt-1">Cart</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Footer -->
+    <footer class="bg-secondary text-white py-12 pb-20 md:pb-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-lg">&copy; 2025 Maricafe. Connected to Database.</p>
+        </div>
+    </footer>
+
+    <!-- Modals -->
+    <!-- Login Modal -->
+    <div id="login-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md">
+            <h3 class="text-2xl font-bold text-secondary mb-6 text-center">🔐 Login to Maricafe</h3>
+            <div id="login-message" class="mb-4"></div>
+            <form id="login-form">
+                <div class="mb-4">
+                    <label for="login-pin" class="block text-sm font-medium text-gray-700 mb-2">Enter Your 4-Digit PIN</label>
+                    <input type="password" id="login-pin" maxlength="4" required class="w-full text-center text-2xl font-mono px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                </div>
+                <button type="submit" class="btn-primary text-white w-full py-3 rounded-lg font-semibold">Login</button>
+            </form>
+            <p class="text-center text-sm text-gray-600 mt-4">Don't have an account? <button id="show-register" class="text-primary hover:underline">Register here</button></p>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div id="register-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-secondary">Create Account</h3>
+                <button id="close-register" class="p-2 hover:bg-gray-100 rounded-lg">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div id="register-message" class="mb-4"></div>
+            <form id="register-form">
+                <div class="space-y-4">
+                    <div>
+                        <label for="register-name" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                        <input type="text" id="register-name" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                    </div>
+                    <div>
+                        <label for="register-email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                        <input type="email" id="register-email" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                    </div>
+                    <div>
+                        <label for="register-location" class="block text-sm font-medium text-gray-700 mb-1">City/Location</label>
+                        <input type="text" id="register-location" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                    </div>
+                    <div>
+                        <label for="register-pin" class="block text-sm font-medium text-gray-700 mb-1">Create 4-Digit PIN</label>
+                        <input type="password" id="register-pin" maxlength="4" required class="w-full text-center text-2xl font-mono px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary text-white w-full py-3 rounded-lg font-semibold mt-6">Create Account</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cart Modal -->
+    <div id="cart-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+            <div class="flex justify-between items-center p-6 border-b">
+                <h3 class="text-2xl font-bold text-secondary">Shopping Cart</h3>
+                <button id="close-cart" class="p-2 hover:bg-gray-100 rounded-lg">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div id="cart-items-list" class="p-6 max-h-96 overflow-y-auto"></div>
+            <div id="cart-empty-message" class="text-center py-12 hidden">
+                <i data-lucide="shopping-cart" class="w-16 h-16 text-gray-300 mx-auto mb-4"></i>
+                <h4 class="text-lg font-semibold text-gray-600 mb-2">Your cart is empty</h4>
+                <p class="text-gray-500">Add some delicious snacks to get started!</p>
+            </div>
+            <div id="cart-summary-section" class="border-t p-6 hidden">
+                <div class="space-y-2 mb-4">
+                    <div class="flex justify-between text-sm">
+                        <span>Subtotal:</span>
+                        <span id="cart-subtotal">$0.00</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span>Discount:</span>
+                        <span id="cart-discount">$0.00</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span>Tax:</span>
+                        <span id="cart-tax">$0.00</span>
+                    </div>
+                    <div class="flex justify-between text-lg font-bold text-secondary">
+                        <span>Total:</span>
+                        <span id="cart-total">$0.00</span>
+                    </div>
+                </div>
+                <button id="checkout-btn" class="cart-checkout btn-primary text-white w-full py-3 rounded-lg font-semibold">Checkout</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div id="payment-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-secondary">Complete Your Payment</h3>
+                <button id="close-payment" class="p-2 hover:bg-gray-100 rounded-lg">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <p class="font-semibold text-blue-800">Total Amount Due: <span id="payment-amount" class="text-xl">$0.00</span></p>
+            </div>
+            <div id="payment-options" class="space-y-4">
+                <!-- Payment options will be loaded here -->
+            </div>
+            <div id="payment-form" class="mt-6 hidden">
+                <!-- Payment form will be loaded here -->
+            </div>
+            <button id="pay-btn" class="btn-primary text-white w-full py-3 rounded-lg font-semibold mt-6 hidden">Pay Now</button>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profile-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-secondary">My Account Profile</h3>
+                <button id="close-profile" class="p-2 hover:bg-gray-100 rounded-lg">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div id="profile-message" class="mb-4"></div>
+            <form id="profile-form">
+                <div class="space-y-4">
+                    <div>
+                        <label for="profile-name" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                        <input type="text" id="profile-name" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                    </div>
+                    <div>
+                        <label for="profile-email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                        <input type="email" id="profile-email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                    </div>
+                    <div>
+                        <label for="profile-location" class="block text-sm font-medium text-gray-700 mb-1">City/Location</label>
+                        <input type="text" id="profile-location" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary text-white w-full py-3 rounded-lg font-semibold mt-6">Save Profile</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Inbox Modal -->
+    <div id="inbox-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+            <div class="flex justify-between items-center p-6 border-b">
+                <h3 class="text-2xl font-bold text-secondary">My Inbox</h3>
+                <button id="close-inbox" class="p-2 hover:bg-gray-100 rounded-lg">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div class="p-6 max-h-96 overflow-y-auto" id="inbox-messages">
+                <!-- Messages will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+            <div class="flex justify-between items-center p-6 border-b">
+                <h3 class="text-2xl font-bold text-secondary">App Settings</h3>
+                <button id="close-settings" class="p-2 hover:bg-gray-100 rounded-lg">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto max-h-96">
+                <form id="settings-form" class="space-y-6">
+                    <!-- Theme Settings -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h4 class="text-lg font-semibold text-secondary mb-3 flex items-center">
+                            <i data-lucide="palette" class="w-5 h-5 mr-2"></i>Theme
+                        </h4>
+                        <div class="grid grid-cols-2 gap-3">
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="radio" name="theme" value="light" class="text-primary focus:ring-primary">
+                                <span>Light Theme</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="radio" name="theme" value="dark" class="text-primary focus:ring-primary">
+                                <span>Dark Theme</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Text Size Settings -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h4 class="text-lg font-semibold text-secondary mb-3 flex items-center">
+                            <i data-lucide="type" class="w-5 h-5 mr-2"></i>Text Size
+                        </h4>
+                        <div class="space-y-2">
+                            <label class="flex items-center justify-between">
+                                <span>Font Size</span>
+                                <select name="textSize" class="px-3 py-1 border border-gray-300 rounded">
+                                    <option value="small">Small</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="large">Large</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Notification Settings -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h4 class="text-lg font-semibold text-secondary mb-3 flex items-center">
+                            <i data-lucide="bell" class="w-5 h-5 mr-2"></i>Notifications
+                        </h4>
+                        <div class="space-y-3">
+                            <label class="flex items-center justify-between">
+                                <span>Enable Notifications</span>
+                                <input type="checkbox" name="notifications" class="text-primary focus:ring-primary">
+                            </label>
+                            <label class="flex items-center justify-between">
+                                <span>Sound Effects</span>
+                                <input type="checkbox" name="sounds" class="text-primary focus:ring-primary">
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- App Information -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h4 class="text-lg font-semibold text-secondary mb-3 flex items-center">
+                            <i data-lucide="info" class="w-5 h-5 mr-2"></i>App Information
+                        </h4>
+                        <div id="app-info" class="space-y-2 text-sm text-gray-600">
+                            <!-- App settings will be loaded here -->
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="border-t p-6 flex justify-end space-x-3">
+                <button id="reset-settings" class="px-4 py-2 text-gray-600 hover:text-gray-800 transition">Reset to Default</button>
+                <button id="save-settings" class="btn-primary text-white px-6 py-2 rounded-lg font-semibold">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="cart.js"></script>
+    <script>
+        // Global variables
+        let products = [];
+        let currentUser = null;
+        let socket = null;
+        const API_BASE = '/api';
+
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Audio functions
+        function initializeAudio() {
+            // Audio initialization code
+        }
+
+        // Modal functions
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+            document.getElementById(modalId).classList.add('flex');
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+            document.getElementById(modalId).classList.remove('flex');
+        }
+
+        // Load products and render
+        async function loadProducts() {
+            try {
+                const response = await fetch(API_BASE + '/snacks');
+                products = await response.json();
+                renderProducts();
+            } catch (error) {
+                console.error('Error loading products:', error);
+            }
+        }
+
+        function renderProducts() {
+            const container = document.getElementById('category-sections');
+            const categories = {};
+
+            products.forEach(product => {
+                const category = product.category || 'Uncategorized';
+                if (!categories[category]) categories[category] = [];
+                categories[category].push(product);
+            });
+
+            let html = '';
+            for (const [category, items] of Object.entries(categories)) {
+                html += `
+                    <div class="category-section">
+                        <h3 class="text-2xl font-bold text-secondary mb-6 border-b-2 border-primary pb-2">${category}</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            ${items.map(product => {
+                                const hasDiscount = product.discount && product.discount > 0;
+                                const discountedPrice = hasDiscount ? product.price * (1 - product.discount / 100) : product.price;
+                                return `
+                                    <div class="bg-white rounded-xl shadow-md card-hover overflow-hidden">
+                                        <img src="${product.imageUrl || 'https://placehold.co/400x200/f97316/white?text=Snack'}" alt="${product.name}" class="w-full h-48 object-cover">
+                                        <div class="p-6">
+                                            <h4 class="text-lg font-semibold text-secondary mb-2">${product.name}</h4>
+                                            <p class="text-gray-600 text-sm mb-4">${product.description || ''}</p>
+                                            <div class="flex justify-between items-center mb-4">
+                                                <div>
+                                                    ${hasDiscount ? `<span class="text-gray-500 line-through text-sm">$${product.price.toFixed(2)}</span><br>` : ''}
+                                                    <span class="text-2xl font-bold text-primary">$${discountedPrice.toFixed(2)}</span>
+                                                </div>
+                                                ${hasDiscount ? `<span class="bg-red-500 text-white text-xs px-2 py-1 rounded-full">-${product.discount}% OFF</span>` : ''}
+                                            </div>
+                                            <div class="flex space-x-2">
+                                                <button class="btn-secondary text-white px-4 py-2 rounded-lg font-semibold flex-1" onclick="addToCart('${product.id}')">
+                                                    <i data-lucide="plus" class="w-4 h-4 inline mr-1"></i>Add to Cart
+                                                </button>
+                                                <button class="btn-primary text-white px-4 py-2 rounded-lg font-semibold flex-1" onclick="buyNow('${product.id}')">
+                                                    Buy Now
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        function addToCart(productId) {
+            const product = products.find(p => p.id == productId);
+            if (product && Cart) {
+                Cart.addItem(product);
+                updateCartBadge();
+            }
+        }
+
+        function buyNow(productId) {
+            addToCart(productId);
+            showModal('cart-modal');
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeAudio();
+
+            // Show login modal initially
+            showModal('login-modal');
+
+            // Menu toggle
+            document.getElementById('menu-btn').addEventListener('click', () => showModal('mobile-menu'));
+            document.getElementById('close-menu').addEventListener('click', () => hideModal('mobile-menu'));
+
+            // Modal closes
+            document.getElementById('close-register').addEventListener('click', () => hideModal('register-modal'));
+            document.getElementById('close-cart').addEventListener('click', () => hideModal('cart-modal'));
+            document.getElementById('close-payment').addEventListener('click', () => hideModal('payment-modal'));
+            document.getElementById('close-profile').addEventListener('click', () => hideModal('profile-modal'));
+            document.getElementById('close-inbox').addEventListener('click', () => hideModal('inbox-modal'));
+
+            // Cart button
+            document.getElementById('nav-cart').addEventListener('click', () => {
+                if (Cart) Cart.render();
+                showModal('cart-modal');
+            });
+
+            // Mobile menu buttons
+            document.getElementById('mobile-profile').addEventListener('click', () => {
+                hideModal('mobile-menu');
+                if (!currentUser) {
+                    showModal('login-modal');
+                } else {
+                    showModal('profile-modal');
+                    loadUserProfile();
+                }
+            });
+
+            document.getElementById('mobile-inbox').addEventListener('click', () => {
+                hideModal('mobile-menu');
+                if (!currentUser) {
+                    showModal('login-modal');
+                } else {
+                    showModal('inbox-modal');
+                    loadUserMessages();
+                }
+            });
+
+            // Bottom navigation
+            document.getElementById('nav-home').addEventListener('click', () => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+
+            document.getElementById('nav-inbox').addEventListener('click', () => {
+                if (!currentUser) {
+                    showModal('login-modal');
+                } else {
+                    showModal('inbox-modal');
+                    loadUserMessages();
+                }
+            });
+
+            document.getElementById('nav-profile').addEventListener('click', () => {
+                if (!currentUser) {
+                    showModal('login-modal');
+                } else {
+                    showModal('profile-modal');
+                    loadUserProfile();
+                }
+            });
+
+            document.getElementById('nav-settings').addEventListener('click', () => {
+                showModal('settings-modal');
+                loadAppSettings();
+            });
+
+            document.getElementById('nav-cart').addEventListener('click', () => {
+                if (Cart) Cart.render();
+                showModal('cart-modal');
+            });
+
+            // Close settings modal
+            document.getElementById('close-settings').addEventListener('click', () => hideModal('settings-modal'));
+
+            // Forms
+            document.getElementById('login-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const pin = document.getElementById('login-pin').value;
+                await login(pin);
+            });
+
+            document.getElementById('register-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('register-name').value;
+                const email = document.getElementById('register-email').value;
+                const location = document.getElementById('register-location').value;
+                const pin = document.getElementById('register-pin').value;
+                await register({ name, email, location, pin });
+            });
+
+            document.getElementById('profile-form').addEventListener('submit', handleProfileSubmit);
+            document.getElementById('contact-form').addEventListener('submit', handleContactSubmit);
+
+            // Notification close
+            document.getElementById('notification-close').addEventListener('click', () => {
+                document.getElementById('top-notification').style.display = 'none';
+            });
+
+            // Show register modal
+            document.getElementById('show-register').addEventListener('click', () => {
+                hideModal('login-modal');
+                showModal('register-modal');
+            });
+        });
+
+        // Authentication functions
+        async function login(pin) {
+            try {
+                const response = await fetch(API_BASE + '/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pin })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    currentUser = data;
+                    hideModal('login-modal');
+                    document.getElementById('user-greeting').textContent = 'Welcome back, ' + data.name.split(' ')[0] + '!';
+                    document.getElementById('user-greeting').classList.remove('hidden');
+                    await loadProducts();
+                    updateCartBadge();
+                    await loadUserMessages();
+                    // Initialize socket, etc.
+                } else {
+                    document.getElementById('login-message').innerHTML = '<p class="text-red-600">' + data.error + '</p>';
+                }
+            } catch (error) {
+                document.getElementById('login-message').innerHTML = '<p class="text-red-600">Login failed</p>';
+            }
+        }
+
+        async function register(userData) {
+            try {
+                const response = await fetch(API_BASE + '/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(userData)
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    hideModal('register-modal');
+                    showModal('login-modal');
+                    document.getElementById('login-message').innerHTML = '<p class="text-green-600">Account created! Please login.</p>';
+                } else {
+                    document.getElementById('register-message').innerHTML = '<p class="text-red-600">' + data.error + '</p>';
+                }
+            } catch (error) {
+                document.getElementById('register-message').innerHTML = '<p class="text-red-600">Registration failed</p>';
+            }
+        }
+
+        async function loadUserProfile() {
+            if (!currentUser) return;
+            document.getElementById('profile-name').value = currentUser.name || '';
+            document.getElementById('profile-email').value = currentUser.email || '';
+            document.getElementById('profile-location').value = currentUser.location || '';
+        }
+
+        async function handleProfileSubmit(e) {
+            e.preventDefault();
+            if (!currentUser) return;
+
+            const name = document.getElementById('profile-name').value.trim();
+            const email = document.getElementById('profile-email').value.trim();
+            const location = document.getElementById('profile-location').value.trim();
+
+            if (!name) {
+                alert('Name is required');
+                return;
+            }
+
+            try {
+                const response = await fetch(API_BASE + '/users/' + currentUser.id + '/profile', {
+                    method: 'PUT',
+                    body: new FormData(document.getElementById('profile-form'))
+                });
+
+                if (response.ok) {
+                    currentUser.name = name;
+                    currentUser.email = email;
+                    currentUser.location = location;
+                    document.getElementById('user-greeting').textContent = 'Welcome back, ' + name.split(' ')[0] + '!';
+                    hideModal('profile-modal');
+                    alert('Profile updated successfully!');
+                } else {
+                    throw new Error('Failed to update profile');
+                }
+            } catch (error) {
+                console.error('Error updating profile:', error);
+                alert('Failed to update profile');
+            }
+        }
+
+        async function handleContactSubmit(e) {
+            e.preventDefault();
+            if (!currentUser) {
+                showModal('login-modal');
+                return;
+            }
+
+            const name = document.getElementById('contact-name').value;
+            const email = document.getElementById('contact-email').value;
+            const message = document.getElementById('contact-message').value;
+
+            if (!name || !email || !message) {
+                alert('Please fill all fields');
+                return;
+            }
+
+            try {
+                await fetch(API_BASE + '/messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        fromUserId: currentUser.id,
+                        toUserId: 'admin',
+                        subject: 'Contact from ' + name,
+                        content: 'Email: ' + email + '\n\n' + message,
+                        type: 'contact'
+                    })
+                });
+
+                document.getElementById('contact-form').reset();
+                document.getElementById('contact-response').innerHTML = '<p class="text-green-600">Message sent successfully! We will get back to you soon.</p>';
+                setTimeout(() => {
+                    document.getElementById('contact-response').innerHTML = '';
+                }, 5000);
+            } catch (error) {
+                console.error('Error sending message:', error);
+                document.getElementById('contact-response').innerHTML = '<p class="text-red-600">Failed to send message. Please try again.</p>';
+            }
+        }
+
+        async function loadUserMessages() {
+            if (!currentUser) return;
+
+            try {
+                const response = await fetch(API_BASE + '/messages/' + currentUser.id);
+                const messages = await response.json();
+                renderInboxMessages(messages);
+                updateInboxCount(messages);
+            } catch (error) {
+                console.error('Error loading messages:', error);
+                document.getElementById('inbox-messages').innerHTML = '<p class="text-center text-gray-500 py-8">Failed to load messages</p>';
+            }
+        }
+
+        function renderInboxMessages(messages) {
+            const container = document.getElementById('inbox-messages');
+            if (messages.length === 0) {
+                container.innerHTML = '<div class="text-center py-12"><i data-lucide="mail" class="w-16 h-16 text-gray-300 mx-auto mb-4"></i><h4 class="text-lg font-semibold text-gray-600 mb-2">No messages yet</h4><p class="text-gray-500">Your inbox is empty.</p></div>';
+                return;
+            }
+
+            const sortedMessages = messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            let html = '<div class="space-y-4">';
+
+            sortedMessages.forEach(msg => {
+                const isFromUser = msg.fromUserId === currentUser.id;
+                const isAdmin = msg.fromUserId === 'admin';
+                const bubbleClass = isFromUser ? 'chat-bubble-user' : (isAdmin && msg.type !== 'broadcast' ? 'chat-bubble-admin direct' : 'chat-bubble-admin');
+                const alignClass = isFromUser ? 'justify-end' : 'justify-start';
+
+                html += `
+                    <div class="flex ${alignClass}">
+                        <div class="${bubbleClass} rounded-2xl px-4 py-3 max-w-xs shadow-md">
+                            <p class="text-sm">${msg.content.replace(/\n/g, '<br>')}</p>
+                            <div class="flex items-center justify-between mt-2 text-xs opacity-70">
+                                <span>${new Date(msg.timestamp).toLocaleString()}</span>
+                                ${isAdmin && msg.type !== 'broadcast' ? '<button class="text-blue-500 hover:text-blue-700 ml-2" onclick="showReplyForm(\'' + msg.id + '\', \'' + msg.fromUserId + '\')">Reply</button>' : ''}
+                            </div>
+                            <div id="reply-form-${msg.id}" class="hidden mt-3 pt-3 border-t border-gray-200">
+                                <textarea id="reply-text-${msg.id}" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Write your reply..." rows="2"></textarea>
+                                <div class="flex justify-end mt-2 space-x-2">
+                                    <button class="px-3 py-1 text-xs text-gray-600 hover:text-gray-800" onclick="hideReplyForm('${msg.id}')">Cancel</button>
+                                    <button class="px-3 py-1 text-xs bg-primary text-white rounded-lg hover:bg-orange-600" onclick="sendReply('${msg.id}', '${msg.fromUserId}')">Send</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        function updateInboxCount(messages) {
+            const unreadCount = messages.filter(msg => !msg.isRead && msg.fromUserId !== currentUser.id).length;
+            const countElements = [document.getElementById('nav-inbox-count'), document.getElementById('nav-inbox-count')]; // Note: duplicate, but for both nav and header if needed
+
+            countElements.forEach(el => {
+                if (el) {
+                    if (unreadCount > 0) {
+                        el.textContent = unreadCount > 99 ? '99+' : unreadCount;
+                        el.classList.remove('hidden');
+                    } else {
+                        el.classList.add('hidden');
+                    }
+                }
+            });
+        }
+
+        function updateCartBadge() {
+            if (!Cart) return;
+            const count = Cart.getItemCount();
+            const countElements = [document.getElementById('nav-cart-count'), document.getElementById('cart-count')];
+
+            countElements.forEach(el => {
+                if (el) {
+                    if (count > 0) {
+                        el.textContent = count > 99 ? '99+' : count;
+                        el.classList.remove('hidden');
+                    } else {
+                        el.classList.add('hidden');
+                    }
+                }
+            });
+        }
+
+        function showReplyForm(messageId, toUserId) {
+            document.getElementById('reply-form-' + messageId).classList.remove('hidden');
+        }
+
+        function hideReplyForm(messageId) {
+            document.getElementById('reply-form-' + messageId).classList.add('hidden');
+        }
+
+        async function sendReply(messageId, toUserId) {
+            const text = document.getElementById('reply-text-' + messageId).value.trim();
+            if (!text) return;
+
+            try {
+                await fetch(API_BASE + '/messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        fromUserId: currentUser.id,
+                        toUserId: toUserId,
+                        subject: 'Re:',
+                        content: text,
+                        type: 'reply'
+                    })
+                });
+                hideReplyForm(messageId);
+                document.getElementById('reply-text-' + messageId).value = '';
+                loadUserMessages(); // Refresh messages
+            } catch (error) {
+                console.error('Error sending reply:', error);
+            }
+        }
+
+        async function loadAppSettings() {
+            try {
+                const response = await fetch(API_BASE + '/settings');
+                const settings = await response.json();
+                renderAppSettings(settings);
+            } catch (error) {
+                console.error('Error loading settings:', error);
+                document.getElementById('settings-content').innerHTML = '<p class="text-center text-gray-500 py-8">Failed to load settings</p>';
+            }
+        }
+
+        function renderAppSettings(settings) {
+            const container = document.getElementById('app-info');
+            let html = '';
+
+            for (const [key, value] of Object.entries(settings)) {
+                html += `<div class="flex justify-between"><span class="capitalize">${key.replace(/_/g, ' ')}:</span><span>${value}</span></div>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function loadUserSettings() {
+            const settings = {
+                theme: localStorage.getItem('maricafe_theme') || 'light',
+                textSize: localStorage.getItem('maricafe_textSize') || 'medium',
+                notifications: localStorage.getItem('maricafe_notifications') === 'true',
+                sounds: localStorage.getItem('maricafe_sounds') === 'true'
+            };
+
+            // Set form values
+            document.querySelector(`input[name="theme"][value="${settings.theme}"]`).checked = true;
+            document.querySelector(`select[name="textSize"]`).value = settings.textSize;
+            document.querySelector(`input[name="notifications"]`).checked = settings.notifications;
+            document.querySelector(`input[name="sounds"]`).checked = settings.sounds;
+
+            // Apply settings
+            applyTheme(settings.theme);
+            applyTextSize(settings.textSize);
+            applyNotifications(settings.notifications);
+            applySounds(settings.sounds);
+        }
+
+        function saveUserSettings() {
+            const formData = new FormData(document.getElementById('settings-form'));
+            const settings = {
+                theme: formData.get('theme'),
+                textSize: formData.get('textSize'),
+                notifications: formData.has('notifications'),
+                sounds: formData.has('sounds')
+            };
+
+            localStorage.setItem('maricafe_theme', settings.theme);
+            localStorage.setItem('maricafe_textSize', settings.textSize);
+            localStorage.setItem('maricafe_notifications', settings.notifications);
+            localStorage.setItem('maricafe_sounds', settings.sounds);
+
+            // Apply settings
+            applyTheme(settings.theme);
+            applyTextSize(settings.textSize);
+            applyNotifications(settings.notifications);
+            applySounds(settings.sounds);
+
+            hideModal('settings-modal');
+            alert('Settings saved successfully!');
+        }
+
+        function resetUserSettings() {
+            localStorage.removeItem('maricafe_theme');
+            localStorage.removeItem('maricafe_textSize');
+            localStorage.removeItem('maricafe_notifications');
+            localStorage.removeItem('maricafe_sounds');
+            loadUserSettings();
+        }
+
+        function applyTheme(theme) {
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+                // Add dark theme styles if needed
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+
+        function applyTextSize(size) {
+            const sizes = { small: 'text-sm', medium: 'text-base', large: 'text-lg' };
+            document.body.classList.remove('text-sm', 'text-base', 'text-lg');
+            document.body.classList.add(sizes[size]);
+        }
+
+        function applyNotifications(enabled) {
+            // Handle notification permissions
+            if (enabled && 'Notification' in window) {
+                Notification.requestPermission();
+            }
+        }
+
+        function applySounds(enabled) {
+            // Store sound preference for use in notification functions
+            window.soundEnabled = enabled;
+        }
+    </script>
+</body>
+</html>
